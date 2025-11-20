@@ -1,7 +1,9 @@
-import tkinter
+import tkinter as tk
 
-root = tkinter.Tk()
-label = tkinter.Label(root, text='Hello World').pack()
+root = tk.Tk()
+tk.Label(root, text='Hello World').pack()
+tk.Label(root, text='Hello World2').pack()
+
 root.title("Sample Grid")
 
 root.geometry("640x400")
