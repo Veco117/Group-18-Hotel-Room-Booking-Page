@@ -13,6 +13,12 @@ except ImportError:
     print("Warning: Pillow library not detected. Please run: pip install pillow")
     print("Without Pillow, rounded corner effects will degrade to rectangles.")
 
+# Import booking flow pages
+from booking_flow_b import DateSelectionPage, SearchResultsPage
+from booking_flow_c import GuestInfoPage, SummaryPage  # F3+F6 合并版本
+from booking_flow_d import PaymentPage, ConfirmationPage
+from manage_booking_flow import ViewBookingPage, ModifyBookingPage, CancelBookingPage
+
 # ==========================================
 # Global Configuration & Color Constants
 # ==========================================
@@ -784,7 +790,7 @@ class FilterPage(tk.Frame):
             selected_rooms.append("Double")
         if self.room_suite.get():
             selected_rooms.append("Suite")
-        
+
         selection = {
             "Room": selected_rooms,  # Now a list
             "Floor": self.floor_var.get(),
@@ -795,9 +801,12 @@ class FilterPage(tk.Frame):
             "MinPrice": self.entry_min.get(),
             "MaxPrice": self.entry_max.get()
         }
-        print("Searching with:", selection)
-        room_str = ", ".join(selected_rooms) if selected_rooms else "Any Room"
-        messagebox.showinfo("Search", f"Searching for: {room_str}\nCheck console for details.")
+
+        # Save filter to controller
+        self.controller.current_filter = selection
+
+        # Navigate to search results page
+        self.controller.show_frame("SearchResultsPage")
 
 # ==========================================
 # Page F1: Welcome Page
@@ -827,7 +836,7 @@ class WelcomePage(tk.Frame):
         # Buttons
         btn_book = tk.Button(self.canvas, text="BOOK NOW", font=("Arial", 12, "bold"),
                              bg=SECONDARY_COLOR, fg="black", width=30, height=2, relief="flat",
-                             cursor="hand2", command=lambda: controller.show_frame("FilterPage"))
+                             cursor="hand2", command=lambda: controller.show_frame("DateSelectionPage"))
         self.canvas.create_window(WINDOW_WIDTH//2 - 180, WINDOW_HEIGHT - 80, window=btn_book, anchor="center")
 
         btn_manage = tk.Button(self.canvas, text="MANAGE BOOKING", font=("Arial", 12, "bold"),
@@ -991,12 +1000,18 @@ class ManageBookingPage(tk.Frame):
         first_name = self.entry_firstname.get().strip()
         last_name = self.entry_lastname.get().strip()
         code = self.entry_code.get().strip()
-        
-        # Query using Last Name and Confirmation Code (maintain original logic)
-        booking = check_booking(last_name, code)
-        if booking: 
-            self.result_label.config(text=f"Found: {booking['room_type']} Room", fg="green")
-        else: 
+
+        # Import the booking storage function
+        from booking_storage import find_booking_by_code
+
+        # Query using Last Name and Confirmation Code
+        booking = find_booking_by_code(last_name, code)
+        if booking:
+            self.result_label.config(text=f"Found: {booking.get('room_type', 'N/A')} Room", fg="green")
+            # Save booking to controller and navigate to view page
+            self.controller.current_booking = booking
+            self.controller.show_frame("ViewBookingPage")
+        else:
             self.result_label.config(text="No booking found.", fg="red")
 
 # ==========================================
@@ -1061,19 +1076,40 @@ class TVXKHotelApp(tk.Tk):
         self.title("TVXK Hotel Booking System - Group 18")
         self.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         self.resizable(False, False)
-        
+
         container = tk.Frame(self)
         container.pack(fill="both", expand=True)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
-        
+
         self.frames = {}
-        for F in (WelcomePage, FilterPage, ManageBookingPage, RoomsPage, LocationPage, AboutUsPage):
+        # Register all pages
+        all_pages = (
+            WelcomePage,
+            FilterPage,
+            ManageBookingPage,
+            RoomsPage,
+            LocationPage,
+            AboutUsPage,
+            # Booking flow pages
+            DateSelectionPage,
+            SearchResultsPage,
+            GuestInfoPage,  # F3+F6 合并在一起
+            SummaryPage,
+            PaymentPage,
+            ConfirmationPage,
+            # Manage booking pages
+            ViewBookingPage,
+            ModifyBookingPage,
+            CancelBookingPage,
+        )
+
+        for F in all_pages:
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
             frame.grid(row=0, column=0, sticky="nsew")
-            
+
         self.show_frame("WelcomePage")
         
     def show_frame(self, name):
