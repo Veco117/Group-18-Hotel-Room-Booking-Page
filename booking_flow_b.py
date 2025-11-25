@@ -14,6 +14,8 @@ try:
 except ImportError:
     HAS_PIL = False
 
+import python_ta
+
 try:
     from tkcalendar import DateEntry
     HAS_TKCALENDAR = True
@@ -466,3 +468,7 @@ class SearchResultsPage(tk.Frame):
         except KeyError:
             # If the page does not exist yet I send the user back home.
             self.controller.show_frame("WelcomePage")
+
+if __name__ == "__main__":
+    import python_ta
+    python_ta.check_all()

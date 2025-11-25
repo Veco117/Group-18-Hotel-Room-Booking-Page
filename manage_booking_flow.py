@@ -1,6 +1,7 @@
 # manage_booking_flow.py
-# F12: Modify Booking - Allow users to modify existing bookings
-# F13: Cancel Booking - Allow users to cancel bookings
+# F12 & F13: Manage existing bookings
+# In this file I handle the pages that let the guest
+# view, modify and cancel an existing booking.
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -50,9 +51,11 @@ def create_round_rect_canvas(canvas, x1, y1, x2, y2, radius=20, tags=None, **kwa
 
 class ViewBookingPage(tk.Frame):
     """
-    Display booking details after search
-    Provide options to modify or cancel
+    In this page I simply show the booking details
+    after the guest has logged in from ManageBookingPage.
+    I also provide buttons to modify or cancel the booking.
     """
+
     def __init__(self, parent, controller):
         super().__init__(parent, bg=BG_COLOR)
         self.controller = controller
@@ -96,7 +99,7 @@ class ViewBookingPage(tk.Frame):
         details_frame = tk.Frame(self.canvas, bg="white", relief="ridge", bd=2)
         self.canvas.create_window(center_x, 340, window=details_frame, anchor="center", width=800, height=350)
 
-        # Details text area
+        # Here I show all the details in a simple Text widget
         self.details_text = tk.Text(
             details_frame,
             font=("Courier New", 10),
@@ -196,11 +199,11 @@ class ViewBookingPage(tk.Frame):
         self.canvas.tag_bind("btn_cancel", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
         self.canvas.tag_bind("btn_cancel", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
-        # Refresh details when page is shown
+        # Every time this page is raised, I refresh the details
         self.bind("<<ShowPage>>", self.refresh_details)
 
     def refresh_details(self, event=None):
-        """Display the current booking details"""
+        """I load the current booking from the controller and print it nicely."""
         self.details_text.config(state="normal")
         self.details_text.delete("1.0", tk.END)
 
@@ -210,7 +213,7 @@ class ViewBookingPage(tk.Frame):
             self.details_text.config(state="disabled")
             return
 
-        # Build details text
+        # I build a plain text block line by line.
         details = "=" * 60 + "\n"
         details += "                    BOOKING INFORMATION\n"
         details += "=" * 60 + "\n\n"
@@ -220,10 +223,16 @@ class ViewBookingPage(tk.Frame):
 
         details += "GUEST INFORMATION\n"
         details += "-" * 60 + "\n"
-        details += f"Name:                {booking.get('first_name', '')} {booking.get('last_name', '')}\n"
+        details += (
+            f"Name:                "
+            f"{booking.get('first_name', '')} {booking.get('last_name', '')}\n"
+        )
         details += f"Email:               {booking.get('email', 'N/A')}\n"
         details += f"Phone:               {booking.get('phone', 'N/A')}\n"
-        details += f"Guests:              {booking.get('adults', 0)} Adult(s), {booking.get('children', 0)} Child(ren)\n\n"
+        details += (
+            f"Guests:              {booking.get('adults', 0)} Adult(s), "
+            f"{booking.get('children', 0)} Child(ren)\n\n"
+        )
 
         details += "STAY DETAILS\n"
         details += "-" * 60 + "\n"
@@ -285,9 +294,11 @@ class ViewBookingPage(tk.Frame):
 
 class ModifyBookingPage(tk.Frame):
     """
-    F12: Modify Booking Page
-    Allow users to modify their booking details
+    In this page I let the guest update some parts of the booking:
+    email, phone number, guest counts and two add‑on options.
+    I do not touch room type or dates here.
     """
+
     def __init__(self, parent, controller):
         super().__init__(parent, bg=BG_COLOR)
         self.controller = controller
@@ -332,21 +343,33 @@ class ModifyBookingPage(tk.Frame):
 
         # Email
         tk.Label(form, text="Email:", font=FONT_LABEL, bg=BG_COLOR).grid(
-            row=0, column=0, padx=10, pady=12, sticky="e"
+            row=0,
+            column=0,
+            padx=10,
+            pady=12,
+            sticky="e",
         )
         self.entry_email = tk.Entry(form, font=FONT_LABEL, width=25)
         self.entry_email.grid(row=0, column=1, padx=10, pady=12)
 
         # Phone
         tk.Label(form, text="Phone Number:", font=FONT_LABEL, bg=BG_COLOR).grid(
-            row=1, column=0, padx=10, pady=12, sticky="e"
+            row=1,
+            column=0,
+            padx=10,
+            pady=12,
+            sticky="e",
         )
         self.entry_phone = tk.Entry(form, font=FONT_LABEL, width=25)
         self.entry_phone.grid(row=1, column=1, padx=10, pady=12)
 
         # Adults
         tk.Label(form, text="Number of Adults:", font=FONT_LABEL, bg=BG_COLOR).grid(
-            row=2, column=0, padx=10, pady=12, sticky="e"
+            row=2,
+            column=0,
+            padx=10,
+            pady=12,
+            sticky="e",
         )
         self.adults_var = tk.IntVar(value=1)
         adults_spinbox = tk.Spinbox(
@@ -361,8 +384,17 @@ class ModifyBookingPage(tk.Frame):
         adults_spinbox.grid(row=2, column=1, padx=10, pady=12)
 
         # Children
-        tk.Label(form, text="Number of Children:", font=FONT_LABEL, bg=BG_COLOR).grid(
-            row=3, column=0, padx=10, pady=12, sticky="e"
+        tk.Label(
+            form,
+            text="Number of Children:",
+            font=FONT_LABEL,
+            bg=BG_COLOR,
+        ).grid(
+            row=3,
+            column=0,
+            padx=10,
+            pady=12,
+            sticky="e",
         )
         self.children_var = tk.IntVar(value=0)
         children_spinbox = tk.Spinbox(
@@ -376,7 +408,7 @@ class ModifyBookingPage(tk.Frame):
         )
         children_spinbox.grid(row=3, column=1, padx=10, pady=12)
 
-        # Add-ons
+        # Add‑ons
         addon_frame = tk.Frame(form, bg=BG_COLOR)
         addon_frame.grid(row=4, column=0, columnspan=2, pady=15)
 
@@ -419,18 +451,18 @@ class ModifyBookingPage(tk.Frame):
             buttons,
             text="Save Changes",
             font=FONT_BUTTON,
-            bg="#28a745",  # Green
+            bg="#28a745",   # green
             fg="white",
             width=15,
             command=self.on_save,
         )
         btn_save.pack(side="left", padx=10)
 
-        # Load current data when page is shown
+        # When this page is shown, I fill the form with current data
         self.bind("<<ShowPage>>", self.load_current_data)
 
     def load_current_data(self, event=None):
-        """Load current booking data into form"""
+        """I copy the current booking values into the form widgets."""
         booking = getattr(self.controller, "current_booking", None)
         if not booking:
             return
@@ -448,7 +480,7 @@ class ModifyBookingPage(tk.Frame):
         self.shuttle_var.set(booking.get("shuttle", False))
 
     def on_save(self):
-        """Save the modified booking"""
+        """Here I validate the input and call update_booking()."""
         booking = getattr(self.controller, "current_booking", None)
         if not booking:
             messagebox.showerror("Error", "No booking to modify.")
@@ -457,7 +489,7 @@ class ModifyBookingPage(tk.Frame):
         last_name = booking.get("last_name", "")
         code = booking.get("confirmation_code", "")
 
-        # Collect new data
+        # I collect the new values in a small dict
         new_fields = {
             "email": self.entry_email.get().strip(),
             "phone": self.entry_phone.get().strip(),
@@ -467,36 +499,40 @@ class ModifyBookingPage(tk.Frame):
             "shuttle": self.shuttle_var.get(),
         }
 
-        # Basic validation
+        # Very basic validation
         if not new_fields["email"] or not new_fields["phone"]:
-            messagebox.showerror("Validation Error", "Email and phone cannot be empty.")
+            messagebox.showerror(
+                "Validation Error",
+                "Email and phone cannot be empty.",
+            )
             return
 
-        # Update booking
+        # Call the storage helper to update the JSON file
         success = update_booking(last_name, code, new_fields)
 
         if success:
-            # Update the current booking in controller
+            # I also update the in‑memory booking copy
             for key, value in new_fields.items():
                 booking[key] = value
 
             messagebox.showinfo(
                 "Success",
-                "Your booking has been updated successfully!"
+                "Your booking has been updated successfully!",
             )
             self.controller.show_frame("ViewBookingPage")
         else:
             messagebox.showerror(
                 "Error",
-                "Failed to update booking. Please try again."
+                "Failed to update booking. Please try again.",
             )
 
 
 class CancelBookingPage(tk.Frame):
     """
-    F13: Cancel Booking Page
-    Allow users to cancel their booking
+    In this page I give the guest one last chance to think,
+    and if they confirm I call cancel_booking() and go back home.
     """
+
     def __init__(self, parent, controller):
         super().__init__(parent, bg=BG_COLOR)
         self.controller = controller
@@ -599,11 +635,11 @@ class CancelBookingPage(tk.Frame):
         self.canvas.tag_bind("btn_confirm", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
         self.canvas.tag_bind("btn_confirm", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
-        # Load booking info when page is shown
+        # When the page is shown, I refresh the summary text
         self.bind("<<ShowPage>>", self.load_booking_info)
 
     def load_booking_info(self, event=None):
-        """Display basic booking info"""
+        """I copy a few key fields into the summary label."""
         booking = getattr(self.controller, "current_booking", None)
         if not booking:
             self.canvas.itemconfig(self.booking_info_id, text="No booking information")
@@ -618,7 +654,7 @@ class CancelBookingPage(tk.Frame):
         self.canvas.itemconfig(self.booking_info_id, text=info_text)
 
     def on_confirm_cancel(self):
-        """Confirm and cancel the booking"""
+        """Here I call cancel_booking() and then send the user back to the home page."""
         booking = getattr(self.controller, "current_booking", None)
         if not booking:
             messagebox.showerror("Error", "No booking to cancel.")
@@ -627,7 +663,6 @@ class CancelBookingPage(tk.Frame):
         last_name = booking.get("last_name", "")
         code = booking.get("confirmation_code", "")
 
-        # Cancel the booking
         success = cancel_booking(last_name, code)
 
         if success:
@@ -636,12 +671,12 @@ class CancelBookingPage(tk.Frame):
                 "Your booking has been cancelled successfully.\n\n"
                 "We look forward to your next visit!"
             )
-            # Clear current booking and return to home
+            # I clear the reference so other pages know there is no active booking
             if hasattr(self.controller, "current_booking"):
                 delattr(self.controller, "current_booking")
             self.controller.show_frame("WelcomePage")
         else:
             messagebox.showerror(
                 "Error",
-                "Failed to cancel booking. Please try again."
+                "Failed to cancel booking. Please try again.",
             )

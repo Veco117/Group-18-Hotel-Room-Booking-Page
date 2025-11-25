@@ -19,9 +19,9 @@ from booking_flow_c import GuestInfoPage, SummaryPage  # F3+F6 merged version
 from booking_flow_d import PaymentPage, ConfirmationPage
 from manage_booking_flow import ViewBookingPage, ModifyBookingPage, CancelBookingPage
 
-# ==========================================
+# =========================================
 # Global Configuration & Color Constants
-# ==========================================
+# =========================================
 
 WINDOW_WIDTH = 900
 WINDOW_HEIGHT = 600

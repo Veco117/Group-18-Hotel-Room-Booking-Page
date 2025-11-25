@@ -290,7 +290,7 @@ class GuestInfoPage(tk.Frame):
             self.spin_children.insert(0, "0")
             return
 
-        tooltip = Tooltip(self.spin_children, "Children must be less than adults and total ≤ 6!")
+        tooltip = Tooltip(self.spin_children, "Children must be less than adults and no more than 6 people in total")
 
         # Rule 1：children counts < adults count
         if children >= adults:
@@ -327,6 +327,8 @@ class GuestInfoPage(tk.Frame):
             # TODO: Change to use regex for email validation
             messagebox.showerror("Error", "Please enter a valid email address.")
             return
+        # ================== 修改结束 ==================
+
         if not phone.isdigit() or len(phone) < 8:
             messagebox.showerror("Error", "Please enter a valid phone number (digits only).")
             return
