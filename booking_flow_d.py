@@ -5,7 +5,37 @@
 import tkinter as tk
 from tkinter import messagebox
 import re
+import os
 from booking_storage import add_booking
+
+try:
+    from PIL import Image, ImageTk
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+
+def create_round_rect_canvas(canvas, x1, y1, x2, y2, radius=20, tags=None, **kwargs):
+    """
+    Draw rounded rectangle using Canvas's create_polygon
+    This is a native Canvas method, doesn't require Pillow
+    """
+    points = [
+        x1+radius, y1,
+        x2-radius, y1,
+        x2, y1,
+        x2, y1+radius,
+        x2, y2-radius,
+        x2, y2,
+        x2-radius, y2,
+        x1+radius, y2,
+        x1, y2,
+        x1, y2-radius,
+        x1, y1+radius,
+        x1, y1
+    ]
+    if tags:
+        kwargs['tags'] = tags
+    return canvas.create_polygon(points, smooth=True, **kwargs)
 
 BG_COLOR = "#F5F5F5"
 FONT_TITLE = ("Arial", 18, "bold")
@@ -28,103 +58,169 @@ class PaymentPage(tk.Frame):
         super().__init__(parent, bg=BG_COLOR)
         self.controller = controller
 
-        title = tk.Label(self, text="Payment Information", font=FONT_TITLE, bg=BG_COLOR)
-        title.pack(pady=(20, 10))
+        # Create canvas for background image
+        self.canvas = tk.Canvas(self, width=900, height=600, bg=BG_COLOR, highlightthickness=0)
+        self.canvas.pack(fill="both", expand=True)
 
-        # Total amount display
-        self.amount_label = tk.Label(
-            self,
+        # Try to load background image
+        bg_path = "payment_bg.png"
+        if HAS_PIL and os.path.exists(bg_path):
+            try:
+                bg_img = Image.open(bg_path)
+                bg_img = bg_img.resize((900, 600), Image.Resampling.LANCZOS)
+                self.bg_photo = ImageTk.PhotoImage(bg_img)
+                self.canvas.create_image(0, 0, image=self.bg_photo, anchor="nw")
+            except Exception as e:
+                print(f"Failed to load {bg_path}: {e}")
+
+        # Center position
+        center_x = 450
+        
+        # Title: "Payment Information" (dark blue text, directly on background)
+        self.canvas.create_text(
+            center_x, 90,
+            text="Payment Information",
+            font=("Arial", 28, "bold"),
+            fill="#001540",  # Dark blue, same as Continue button
+            anchor="center"
+        )
+
+        # Total amount display (drawn on canvas, moved down)
+        self.amount_text_id = self.canvas.create_text(
+            center_x, 190,
             text="Total Amount: $0.00",
             font=("Arial", 16, "bold"),
-            bg=BG_COLOR,
-            fg="#2F80ED",
+            fill="#001540",  # Dark blue
+            anchor="center"
         )
-        self.amount_label.pack(pady=(0, 20))
 
-        info = tk.Label(
-            self,
+        # Info text (drawn on canvas, moved down)
+        self.canvas.create_text(
+            center_x, 220,
             text="Please enter your payment details to complete the reservation.",
             font=("Arial", 10, "italic"),
-            bg=BG_COLOR,
+            fill="#001540",  # Dark blue
+            anchor="center"
         )
-        info.pack(pady=(0, 20))
 
-        # Payment form
-        form = tk.Frame(self, bg=BG_COLOR)
-        form.pack(pady=20)
-
-        # Card Number
-        tk.Label(form, text="Card Number (16 digits):", font=FONT_LABEL, bg=BG_COLOR).grid(
-            row=0, column=0, padx=10, pady=12, sticky="e"
+        # Payment form elements directly on canvas (no white background, moved down)
+        form_y_start = 280
+        row_spacing = 50
+        
+        # Card Number label
+        self.canvas.create_text(
+            center_x - 120, form_y_start,
+            text="Card Number (16 digits):",
+            font=FONT_LABEL,
+            fill="#001540",
+            anchor="e"
         )
-        self.entry_card = tk.Entry(form, font=FONT_LABEL, width=25)
-        self.entry_card.grid(row=0, column=1, padx=10, pady=12)
+        self.entry_card = tk.Entry(self.canvas, font=FONT_LABEL, width=25, bg="white")
+        self.canvas.create_window(center_x - 90, form_y_start, window=self.entry_card, anchor="w")
 
-        # CVV
-        tk.Label(form, text="CVV (3 digits):", font=FONT_LABEL, bg=BG_COLOR).grid(
-            row=1, column=0, padx=10, pady=12, sticky="e"
+        # CVV label
+        self.canvas.create_text(
+            center_x - 120, form_y_start + row_spacing,
+            text="CVV (3 digits):",
+            font=FONT_LABEL,
+            fill="#001540",
+            anchor="e"
         )
-        self.entry_cvv = tk.Entry(form, font=FONT_LABEL, width=25, show="*")
-        self.entry_cvv.grid(row=1, column=1, padx=10, pady=12)
+        self.entry_cvv = tk.Entry(self.canvas, font=FONT_LABEL, width=25, show="*", bg="white")
+        self.canvas.create_window(center_x - 90, form_y_start + row_spacing, window=self.entry_cvv, anchor="w")
 
-        # Expiry Date
-        tk.Label(form, text="Expiry Date (MM/YY):", font=FONT_LABEL, bg=BG_COLOR).grid(
-            row=2, column=0, padx=10, pady=12, sticky="e"
+        # Expiry Date label
+        self.canvas.create_text(
+            center_x - 120, form_y_start + row_spacing * 2,
+            text="Expiry Date (MM/YY):",
+            font=FONT_LABEL,
+            fill="#001540",
+            anchor="e"
         )
-        self.entry_expiry = tk.Entry(form, font=FONT_LABEL, width=25)
-        self.entry_expiry.grid(row=2, column=1, padx=10, pady=12)
+        self.entry_expiry = tk.Entry(self.canvas, font=FONT_LABEL, width=25, bg="white")
+        self.canvas.create_window(center_x - 90, form_y_start + row_spacing * 2, window=self.entry_expiry, anchor="w")
 
-        # Cardholder Name
-        tk.Label(form, text="Cardholder Name:", font=FONT_LABEL, bg=BG_COLOR).grid(
-            row=3, column=0, padx=10, pady=12, sticky="e"
+        # Cardholder Name label
+        self.canvas.create_text(
+            center_x - 120, form_y_start + row_spacing * 3,
+            text="Cardholder Name:",
+            font=FONT_LABEL,
+            fill="#001540",
+            anchor="e"
         )
-        self.entry_cardholder = tk.Entry(form, font=FONT_LABEL, width=25)
-        self.entry_cardholder.grid(row=3, column=1, padx=10, pady=12)
+        self.entry_cardholder = tk.Entry(self.canvas, font=FONT_LABEL, width=25, bg="white")
+        self.canvas.create_window(center_x - 90, form_y_start + row_spacing * 3, window=self.entry_cardholder, anchor="w")
 
-        # Validation hints
-        hints = tk.Label(
-            self,
-            text="* Card number must be 16 digits\n* CVV must be 3 digits\n* Expiry date format: MM/YY (e.g., 12/25)\n* All fields must contain only numbers (except cardholder name)",
-            font=("Arial", 9, "italic"),
-            bg=BG_COLOR,
-            fg="#666666",
-            justify="left",
+        # Button dimensions (same as other pages)
+        btn_width = 200
+        btn_height = 45
+        btn_radius = 10
+        btn_spacing = 30
+        btn_y = 500  # Button Y position
+        
+        # Calculate button positions
+        total_width = btn_width * 2 + btn_spacing
+        start_x = center_x - total_width // 2
+        
+        # "Back to Summary" button (darker blue background, white text)
+        btn_back_x1 = start_x
+        btn_back_y1 = btn_y - btn_height // 2
+        btn_back_x2 = btn_back_x1 + btn_width
+        btn_back_y2 = btn_back_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_back_x1, btn_back_y1, btn_back_x2, btn_back_y2,
+            radius=btn_radius,
+            fill="#004aad",  # Blue color
+            outline="",
+            tags="btn_back"
         )
-        hints.pack(pady=10)
-
-        # Buttons
-        buttons = tk.Frame(self, bg=BG_COLOR)
-        buttons.pack(pady=30)
-
-        btn_back = tk.Button(
-            buttons,
+        self.canvas.create_text(
+            (btn_back_x1 + btn_back_x2) // 2,
+            (btn_back_y1 + btn_back_y2) // 2,
             text="Back to Summary",
-            font=("Arial", 12),
-            bg=SECONDARY_BG,
-            fg=SECONDARY_FG,
-            width=15,
-            command=lambda: controller.show_frame("SummaryPage"),
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_back"
         )
-        btn_back.pack(side="left", padx=10)
+        self.canvas.tag_bind("btn_back", "<Button-1>", lambda e: controller.show_frame("SummaryPage"))
+        self.canvas.tag_bind("btn_back", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_back", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
-        btn_pay = tk.Button(
-            buttons,
-            text="Complete Payment",
-            font=FONT_BUTTON,
-            bg="#28a745",  # Green for payment button
-            fg="white",
-            width=18,
-            command=self.on_pay,
+        # "Complete Payment" button (dark blue background, white text)
+        btn_pay_x1 = start_x + btn_width + btn_spacing
+        btn_pay_y1 = btn_y - btn_height // 2
+        btn_pay_x2 = btn_pay_x1 + btn_width
+        btn_pay_y2 = btn_pay_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_pay_x1, btn_pay_y1, btn_pay_x2, btn_pay_y2,
+            radius=btn_radius,
+            fill="#001540",  # Dark blue (same as Continue button)
+            outline="",
+            tags="btn_pay"
         )
-        btn_pay.pack(side="left", padx=10)
+        self.canvas.create_text(
+            (btn_pay_x1 + btn_pay_x2) // 2,
+            (btn_pay_y1 + btn_pay_y2) // 2,
+            text="Complete Payment",
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_pay"
+        )
+        self.canvas.tag_bind("btn_pay", "<Button-1>", lambda e: self.on_pay())
+        self.canvas.tag_bind("btn_pay", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_pay", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
         # Refresh amount when page is shown
         self.bind("<<ShowPage>>", self.refresh_amount)
 
     def refresh_amount(self, event=None):
         """Update the total amount display"""
-        total = getattr(self.controller, "booking_total", 0.0)
-        self.amount_label.config(text=f"Total Amount: ${total:.2f}")
+        total = getattr(self.controller, "total_price", 0.0)
+        self.canvas.itemconfig(self.amount_text_id, text=f"Total Amount: ${total:.2f}")
 
     def validate_card_number(self, card):
         """Validate card number: must be 16 digits"""
@@ -227,38 +323,44 @@ class ConfirmationPage(tk.Frame):
         super().__init__(parent, bg=BG_COLOR)
         self.controller = controller
 
-        title = tk.Label(
-            self,
+        # Create canvas for background image
+        self.canvas = tk.Canvas(self, width=900, height=600, bg=BG_COLOR, highlightthickness=0)
+        self.canvas.pack(fill="both", expand=True)
+
+        # Try to load background image
+        bg_path = "book_comfirm_bg.png"
+        if HAS_PIL and os.path.exists(bg_path):
+            try:
+                bg_img = Image.open(bg_path)
+                bg_img = bg_img.resize((900, 600), Image.Resampling.LANCZOS)
+                self.bg_photo = ImageTk.PhotoImage(bg_img)
+                self.canvas.create_image(0, 0, image=self.bg_photo, anchor="nw")
+            except Exception as e:
+                print(f"Failed to load {bg_path}: {e}")
+
+        center_x = 450
+
+        # Title: "Booking Confirmed!" (directly on background)
+        self.canvas.create_text(
+            center_x, 200,
             text="Booking Confirmed!",
             font=("Arial", 24, "bold"),
-            bg=BG_COLOR,
-            fg="#28a745",  # Green
+            fill="#000636",  # Dark blue
+            anchor="center"
         )
-        title.pack(pady=(30, 20))
 
-        # Success icon (using text)
-        success_icon = tk.Label(
-            self,
-            text="✓",
-            font=("Arial", 80, "bold"),
-            bg=BG_COLOR,
-            fg="#28a745",
-        )
-        success_icon.pack(pady=(10, 20))
-
-        # Confirmation message
-        self.message_label = tk.Label(
-            self,
+        # Confirmation message (directly on background)
+        self.message_text_id = self.canvas.create_text(
+            center_x, 262,
             text="Your TVXK Hotel reservation has been successfully created!",
             font=("Arial", 13),
-            bg=BG_COLOR,
-            fg="#333333",
+            fill="#001540",  # Dark blue
+            anchor="center"
         )
-        self.message_label.pack(pady=(0, 20))
 
-        # Confirmation code display
-        self.code_frame = tk.Frame(self, bg="white", relief="ridge", bd=2)
-        self.code_frame.pack(padx=50, pady=20)
+        # Confirmation code display (white background frame for readability)
+        self.code_frame = tk.Frame(self.canvas, bg="white", relief="ridge", bd=2)
+        self.canvas.create_window(center_x, 350, window=self.code_frame, anchor="center", width=500, height=120)
 
         tk.Label(
             self.code_frame,
@@ -276,29 +378,46 @@ class ConfirmationPage(tk.Frame):
         )
         self.code_label.pack(padx=20, pady=(5, 15))
 
-        # Important message
-        important_msg = tk.Label(
-            self,
+        # Important message (directly on background)
+        self.canvas.create_text(
+            center_x, 450,
             text="Please save this confirmation code for future reference.\n"
                  "You can use it to view, modify, or cancel your reservation.",
             font=("Arial", 11, "italic"),
-            bg=BG_COLOR,
-            fg="#666666",
-            justify="center",
+            fill="#001540",  # Dark blue
+            anchor="center"
         )
-        important_msg.pack(pady=(10, 30))
 
-        # Button to return home
-        btn_home = tk.Button(
-            self,
-            text="Return to Home",
-            font=FONT_BUTTON,
-            bg=PRIMARY_BG,
-            fg=PRIMARY_FG,
-            width=20,
-            command=self.return_home,
+        # Button to return home (using rounded rectangle)
+        btn_width = 200
+        btn_height = 45
+        btn_radius = 10
+        btn_y = 540  # Moved down 1cm (40 pixels)
+        
+        btn_home_x1 = center_x - btn_width // 2
+        btn_home_y1 = btn_y - btn_height // 2
+        btn_home_x2 = btn_home_x1 + btn_width
+        btn_home_y2 = btn_home_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_home_x1, btn_home_y1, btn_home_x2, btn_home_y2,
+            radius=btn_radius,
+            fill="#53a5b3",  # Teal blue
+            outline="",
+            tags="btn_home"
         )
-        btn_home.pack(pady=20)
+        self.canvas.create_text(
+            center_x,
+            btn_y,
+            text="Return to Home",
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_home"
+        )
+        self.canvas.tag_bind("btn_home", "<Button-1>", lambda e: self.return_home())
+        self.canvas.tag_bind("btn_home", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_home", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
         # Generate confirmation when page is shown
         self.bind("<<ShowPage>>", self.generate_confirmation)
@@ -308,11 +427,10 @@ class ConfirmationPage(tk.Frame):
         # Collect all booking data
         stay_info = getattr(self.controller, "current_stay", {})
         room = getattr(self.controller, "selected_room", {})
-        # guests = getattr(self.controller, "guest_selection", {})
         guest_info = getattr(self.controller, "guest_info", {})
         payment_info = getattr(self.controller, "payment_info", {})
         filters = getattr(self.controller, "current_filter", {})
-        total = getattr(self.controller, "booking_total", 0.0)
+        total = getattr(self.controller, "total_price", 0.0)
 
         # Prepare booking data for JSON
         booking_data = {
@@ -345,7 +463,7 @@ class ConfirmationPage(tk.Frame):
             messagebox.showinfo(
                 "Success",
                 f"Your booking has been saved!\n\nConfirmation Code: {confirmation_code}\n\n"
-                "We are looking forward to see you!:)"
+                "We look forward to your visit! :)"
             )
         except Exception as e:
             messagebox.showerror(
@@ -361,16 +479,14 @@ class ConfirmationPage(tk.Frame):
             delattr(self.controller, "current_stay")
         if hasattr(self.controller, "selected_room"):
             delattr(self.controller, "selected_room")
-        if hasattr(self.controller, "guest_selection"):
-            delattr(self.controller, "guest_selection")
         if hasattr(self.controller, "guest_info"):
             delattr(self.controller, "guest_info")
         if hasattr(self.controller, "payment_info"):
             delattr(self.controller, "payment_info")
         if hasattr(self.controller, "current_filter"):
             delattr(self.controller, "current_filter")
-        if hasattr(self.controller, "booking_total"):
-            delattr(self.controller, "booking_total")
+        if hasattr(self.controller, "total_price"):
+            delattr(self.controller, "total_price")
 
         # Return to welcome page
         self.controller.show_frame("WelcomePage")

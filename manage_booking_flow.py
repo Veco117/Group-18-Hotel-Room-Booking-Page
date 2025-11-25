@@ -5,7 +5,14 @@
 
 import tkinter as tk
 from tkinter import ttk, messagebox
+import os
 from booking_storage import find_booking_by_code, update_booking, cancel_booking
+
+try:
+    from PIL import Image, ImageTk
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
 
 BG_COLOR = "#F5F5F5"
 FONT_TITLE = ("Arial", 18, "bold")
@@ -16,6 +23,30 @@ PRIMARY_BG = "#2F80ED"
 PRIMARY_FG = "white"
 SECONDARY_BG = "#E0E0E0"
 SECONDARY_FG = "#333333"
+
+
+def create_round_rect_canvas(canvas, x1, y1, x2, y2, radius=20, tags=None, **kwargs):
+    """
+    Draw rounded rectangle using Canvas's create_polygon
+    This is a native Canvas method, doesn't require Pillow
+    """
+    points = [
+        x1+radius, y1,
+        x2-radius, y1,
+        x2, y1,
+        x2, y1+radius,
+        x2, y2-radius,
+        x2, y2,
+        x2-radius, y2,
+        x1+radius, y2,
+        x1, y2,
+        x1, y2-radius,
+        x1, y1+radius,
+        x1, y1
+    ]
+    if tags:
+        kwargs['tags'] = tags
+    return canvas.create_polygon(points, smooth=True, **kwargs)
 
 
 class ViewBookingPage(tk.Frame):
@@ -29,73 +60,144 @@ class ViewBookingPage(tk.Frame):
         super().__init__(parent, bg=BG_COLOR)
         self.controller = controller
 
-        title = tk.Label(
-            self,
+        # Create canvas for background image
+        self.canvas = tk.Canvas(self, width=900, height=600, bg=BG_COLOR, highlightthickness=0)
+        self.canvas.pack(fill="both", expand=True)
+
+        # Try to load background image
+        bg_path = "Your_booking_details_bg.png"
+        if HAS_PIL and os.path.exists(bg_path):
+            try:
+                bg_img = Image.open(bg_path)
+                bg_img = bg_img.resize((900, 600), Image.Resampling.LANCZOS)
+                self.bg_photo = ImageTk.PhotoImage(bg_img)
+                self.canvas.create_image(0, 0, image=self.bg_photo, anchor="nw")
+            except Exception as e:
+                print(f"Failed to load {bg_path}: {e}")
+
+        center_x = 450
+        
+        # Title: "Your Booking Details" (directly on background)
+        self.canvas.create_text(
+            center_x, 50,
             text="Your Booking Details",
-            font=FONT_TITLE,
-            bg=BG_COLOR,
+            font=("Arial", 28, "bold"),
+            fill="#001540",  # Dark blue
+            anchor="center"
         )
-        title.pack(pady=(20, 10))
 
-        info = tk.Label(
-            self,
+        # Info text (directly on background)
+        self.canvas.create_text(
+            center_x, 130,
             text="Review your booking information below.",
-            font=("Arial", 10, "italic"),
-            bg=BG_COLOR,
+            font=("Arial", 13, "italic"),
+            fill="#001540",  # Dark blue
+            anchor="center"
         )
-        info.pack(pady=(0, 20))
 
-        # I use a small frame as a white card for the details
-        details_container = tk.Frame(self, bg="white", relief="ridge", bd=2)
-        details_container.pack(padx=40, pady=20, fill="both", expand=True)
+        # Details container (white background frame for readability)
+        details_frame = tk.Frame(self.canvas, bg="white", relief="ridge", bd=2)
+        self.canvas.create_window(center_x, 340, window=details_frame, anchor="center", width=800, height=350)
 
         # Here I show all the details in a simple Text widget
         self.details_text = tk.Text(
-            details_container,
+            details_frame,
             font=("Courier New", 10),
             bg="white",
             wrap="word",
-            height=16,
+            height=20,
             state="disabled",
         )
         self.details_text.pack(padx=20, pady=20, fill="both", expand=True)
 
-        # Buttons under the details
-        buttons = tk.Frame(self, bg=BG_COLOR)
-        buttons.pack(pady=20)
-
-        btn_back = tk.Button(
-            buttons,
+        # Button dimensions
+        btn_width = 180
+        btn_height = 45
+        btn_radius = 10
+        btn_spacing = 30
+        btn_y = 560
+        
+        # Calculate button positions
+        total_width = btn_width * 3 + btn_spacing * 2
+        start_x = center_x - total_width // 2
+        
+        # "Back to Search" button (#d8aeba)
+        btn_back_x1 = start_x
+        btn_back_y1 = btn_y - btn_height // 2
+        btn_back_x2 = btn_back_x1 + btn_width
+        btn_back_y2 = btn_back_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_back_x1, btn_back_y1, btn_back_x2, btn_back_y2,
+            radius=btn_radius,
+            fill="#d8aeba",  # Pink color
+            outline="",
+            tags="btn_back"
+        )
+        self.canvas.create_text(
+            (btn_back_x1 + btn_back_x2) // 2,
+            (btn_back_y1 + btn_back_y2) // 2,
             text="Back to Search",
-            font=("Arial", 12),
-            bg=SECONDARY_BG,
-            fg=SECONDARY_FG,
-            width=15,
-            command=lambda: controller.show_frame("ManageBookingPage"),
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_back"
         )
-        btn_back.pack(side="left", padx=10)
+        self.canvas.tag_bind("btn_back", "<Button-1>", lambda e: controller.show_frame("ManageBookingPage"))
+        self.canvas.tag_bind("btn_back", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_back", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
-        btn_modify = tk.Button(
-            buttons,
+        # "Modify Booking" button (#000636)
+        btn_modify_x1 = start_x + btn_width + btn_spacing
+        btn_modify_y1 = btn_y - btn_height // 2
+        btn_modify_x2 = btn_modify_x1 + btn_width
+        btn_modify_y2 = btn_modify_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_modify_x1, btn_modify_y1, btn_modify_x2, btn_modify_y2,
+            radius=btn_radius,
+            fill="#000636",  # Dark blue
+            outline="",
+            tags="btn_modify"
+        )
+        self.canvas.create_text(
+            (btn_modify_x1 + btn_modify_x2) // 2,
+            (btn_modify_y1 + btn_modify_y2) // 2,
             text="Modify Booking",
-            font=FONT_BUTTON,
-            bg="#FFA500",   # orange
-            fg="white",
-            width=15,
-            command=lambda: controller.show_frame("ModifyBookingPage"),
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_modify"
         )
-        btn_modify.pack(side="left", padx=10)
+        self.canvas.tag_bind("btn_modify", "<Button-1>", lambda e: controller.show_frame("ModifyBookingPage"))
+        self.canvas.tag_bind("btn_modify", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_modify", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
-        btn_cancel = tk.Button(
-            buttons,
-            text="Cancel Booking",
-            font=FONT_BUTTON,
-            bg="#DC3545",   # red
-            fg="white",
-            width=15,
-            command=lambda: controller.show_frame("CancelBookingPage"),
+        # "Cancel Booking" button (#d15757)
+        btn_cancel_x1 = start_x + (btn_width + btn_spacing) * 2
+        btn_cancel_y1 = btn_y - btn_height // 2
+        btn_cancel_x2 = btn_cancel_x1 + btn_width
+        btn_cancel_y2 = btn_cancel_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_cancel_x1, btn_cancel_y1, btn_cancel_x2, btn_cancel_y2,
+            radius=btn_radius,
+            fill="#d15757",  # Red color
+            outline="",
+            tags="btn_cancel"
         )
-        btn_cancel.pack(side="left", padx=10)
+        self.canvas.create_text(
+            (btn_cancel_x1 + btn_cancel_x2) // 2,
+            (btn_cancel_y1 + btn_cancel_y2) // 2,
+            text="Cancel Booking",
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_cancel"
+        )
+        self.canvas.tag_bind("btn_cancel", "<Button-1>", lambda e: controller.show_frame("CancelBookingPage"))
+        self.canvas.tag_bind("btn_cancel", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_cancel", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
         # Every time this page is raised, I refresh the details
         self.bind("<<ShowPage>>", self.refresh_details)
@@ -147,10 +249,43 @@ class ViewBookingPage(tk.Frame):
 
         details += "PAYMENT\n"
         details += "-" * 60 + "\n"
-        details += f"Total Price:         ${booking.get('total_price', 0.0):.2f}\n"
-        details += (
-            f"Card (last 4):       ****{booking.get('payment_last4', '****')}\n"
-        )
+        
+        # Calculate detailed pricing
+        # Get room price from rooms_data
+        from rooms_data import ROOMS
+        room_type = booking.get('room_type', '')
+        room_name = booking.get('room_name', '')
+        nights = booking.get('nights', 0)
+        
+        # Find room price from ROOMS list
+        room_price_per_night = 0.0
+        for room in ROOMS:
+            if room.get('short_type') == room_type or room.get('name') == room_name:
+                room_price_per_night = room.get('price', 0.0)
+                break
+        
+        # Calculate room total
+        room_total = room_price_per_night * nights
+        
+        # Calculate service fees
+        breakfast_fee = 40.0 if booking.get('breakfast', False) else 0.0
+        shuttle_fee = 25.0 if booking.get('shuttle', False) else 0.0
+        
+        # Calculate subtotal and tax
+        subtotal = room_total + breakfast_fee + shuttle_fee
+        tax = subtotal * 0.10  # 10% tax
+        total_price = subtotal + tax
+        
+        # Display detailed pricing
+        details += f"Room Charge:         ${room_total:.2f}\n"
+        if breakfast_fee > 0:
+            details += f"Breakfast:            ${breakfast_fee:.2f}\n"
+        if shuttle_fee > 0:
+            details += f"Airport Shuttle:      ${shuttle_fee:.2f}\n"
+        details += f"Tax (10%):            ${tax:.2f}\n"
+        details += f"Total Price:          ${total_price:.2f}\n"
+        details += f"Card (last 4):        ****{booking.get('payment_last4', '****')}\n"
+
         details += "=" * 60 + "\n"
 
         self.details_text.insert("1.0", details)
@@ -168,21 +303,33 @@ class ModifyBookingPage(tk.Frame):
         super().__init__(parent, bg=BG_COLOR)
         self.controller = controller
 
-        title = tk.Label(
-            self,
-            text="Modify Your Booking",
-            font=FONT_TITLE,
-            bg=BG_COLOR,
-        )
+        # Create canvas for background image
+        canvas = tk.Canvas(self, width=900, height=600, bg=BG_COLOR, highlightthickness=0)
+        canvas.pack(fill="both", expand=True)
+
+        # Try to load background image
+        bg_path = "modify_your_booking_bg.png"
+        if HAS_PIL and os.path.exists(bg_path):
+            try:
+                bg_img = Image.open(bg_path)
+                bg_img = bg_img.resize((900, 600), Image.Resampling.LANCZOS)
+                self.bg_photo = ImageTk.PhotoImage(bg_img)
+                canvas.create_image(0, 0, image=self.bg_photo, anchor="nw")
+            except Exception as e:
+                print(f"Failed to load {bg_path}: {e}")
+
+        # Create a frame on the canvas for content
+        content_frame = tk.Frame(canvas, bg=BG_COLOR)
+        canvas.create_window(450, 300, window=content_frame, anchor="center")
+
+        title = tk.Label(content_frame, text="Modify Your Booking", font=FONT_TITLE, bg=BG_COLOR)
         title.pack(pady=(20, 10))
 
         info = tk.Label(
-            self,
-            text=(
-                "Update your booking information below.\n"
-                "Note: room type or dates cannot be modified here.\n"
-                "If you wish to change those, please cancel current booking and create a new booking."
-            ),
+            content_frame,
+            text="Update your booking information below.\n"
+                 "Note: You cannot change the room type or dates here.\n"
+                 "To change these, please cancel and create a new booking.",
             font=("Arial", 10, "italic"),
             bg=BG_COLOR,
             fg="#666666",
@@ -190,8 +337,8 @@ class ModifyBookingPage(tk.Frame):
         )
         info.pack(pady=(0, 20))
 
-        # Form area
-        form = tk.Frame(self, bg=BG_COLOR)
+        # Form frame
+        form = tk.Frame(content_frame, bg=BG_COLOR)
         form.pack(pady=20)
 
         # Email
@@ -285,8 +432,8 @@ class ModifyBookingPage(tk.Frame):
         )
         shuttle_check.pack(side="left", padx=15)
 
-        # Bottom buttons
-        buttons = tk.Frame(self, bg=BG_COLOR)
+        # Buttons
+        buttons = tk.Frame(content_frame, bg=BG_COLOR)
         buttons.pack(pady=30)
 
         btn_back = tk.Button(
@@ -390,83 +537,103 @@ class CancelBookingPage(tk.Frame):
         super().__init__(parent, bg=BG_COLOR)
         self.controller = controller
 
-        title = tk.Label(
-            self,
-            text="Cancel Booking",
-            font=FONT_TITLE,
-            bg=BG_COLOR,
-            fg="#DC3545",   # red
-        )
-        title.pack(pady=(30, 20))
+        # Create canvas for background image
+        self.canvas = tk.Canvas(self, width=900, height=600, bg=BG_COLOR, highlightthickness=0)
+        self.canvas.pack(fill="both", expand=True)
 
-        # Simple warning icon (just a big triangle)
-        warning_icon = tk.Label(
-            self,
-            text="⚠",
-            font=("Arial", 60, "bold"),
-            bg=BG_COLOR,
-            fg="#DC3545",
-        )
-        warning_icon.pack(pady=(10, 20))
+        # Try to load background image
+        bg_path = "cancel_booking_bg.png"
+        if HAS_PIL and os.path.exists(bg_path):
+            try:
+                bg_img = Image.open(bg_path)
+                bg_img = bg_img.resize((900, 600), Image.Resampling.LANCZOS)
+                self.bg_photo = ImageTk.PhotoImage(bg_img)
+                self.canvas.create_image(0, 0, image=self.bg_photo, anchor="nw")
+            except Exception as e:
+                print(f"Failed to load {bg_path}: {e}")
 
-        warning_msg = tk.Label(
-            self,
-            text="Are you sure you want to cancel this booking?",
-            font=("Arial", 14, "bold"),
-            bg=BG_COLOR,
-            fg="#333333",
-        )
-        warning_msg.pack(pady=(0, 10))
-
-        # I show a short summary so the guest knows which booking this is
-        self.booking_info = tk.Label(
-            self,
+        center_x = 450
+        
+        # Details about the booking (directly on background)
+        self.booking_info_id = self.canvas.create_text(
+            center_x, 360,
             text="",
-            font=("Arial", 11),
-            bg=BG_COLOR,
-            fg="#666666",
-            justify="center",
+            font=("Arial", 13),
+            fill="#001540",  # Dark blue
+            anchor="center"
         )
-        self.booking_info.pack(pady=(0, 20))
 
-        info = tk.Label(
-            self,
-            text=(
-                "This action cannot be undone.\n"
-                "Your booking will be marked as cancelled."
-            ),
-            font=("Arial", 10, "italic"),
-            bg=BG_COLOR,
-            fg="#999999",
-            justify="center",
+        # Info text (directly on background)
+        self.canvas.create_text(
+            center_x, 430,
+            text="This action cannot be undone.\nYour booking will be marked as cancelled.",
+            font=("Arial", 12, "italic"),
+            fill="#001540",  # Dark blue
+            anchor="center"
         )
-        info.pack(pady=(0, 30))
-
-        # Buttons
-        buttons = tk.Frame(self, bg=BG_COLOR)
-        buttons.pack(pady=20)
-
-        btn_back = tk.Button(
-            buttons,
+        
+        # Button dimensions
+        btn_width = 180
+        btn_height = 45
+        btn_radius = 10
+        btn_spacing = 30
+        btn_y = 510  # Moved down 1.5cm (60 pixels)
+        
+        # Calculate button positions
+        total_width = btn_width * 2 + btn_spacing
+        start_x = center_x - total_width // 2
+        
+        # "No, Go Back" button (#98afce)
+        btn_back_x1 = start_x
+        btn_back_y1 = btn_y - btn_height // 2
+        btn_back_x2 = btn_back_x1 + btn_width
+        btn_back_y2 = btn_back_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_back_x1, btn_back_y1, btn_back_x2, btn_back_y2,
+            radius=btn_radius,
+            fill="#98afce",  # Light blue
+            outline="",
+            tags="btn_back"
+        )
+        self.canvas.create_text(
+            (btn_back_x1 + btn_back_x2) // 2,
+            (btn_back_y1 + btn_back_y2) // 2,
             text="No, Go Back",
-            font=FONT_BUTTON,
-            bg=SECONDARY_BG,
-            fg=SECONDARY_FG,
-            width=15,
-            command=lambda: controller.show_frame("ViewBookingPage"),
+            font=("Arial", 12, "bold"),
+            fill="white",  # White text
+            tags="btn_back"
         )
-        btn_back.pack(side="left", padx=15)
+        self.canvas.tag_bind("btn_back", "<Button-1>", lambda e: controller.show_frame("ViewBookingPage"))
+        self.canvas.tag_bind("btn_back", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_back", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
-        btn_confirm = tk.Button(
-            buttons,
-            text="Yes, Cancel Booking",
-            font=FONT_BUTTON,
-            bg="#DC3545",   # red
-            fg="white",
-            width=18,
-            command=self.on_confirm_cancel,
+        # "Yes, Cancel Booking" button (#d15757)
+        btn_confirm_x1 = start_x + btn_width + btn_spacing
+        btn_confirm_y1 = btn_y - btn_height // 2
+        btn_confirm_x2 = btn_confirm_x1 + btn_width
+        btn_confirm_y2 = btn_confirm_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_confirm_x1, btn_confirm_y1, btn_confirm_x2, btn_confirm_y2,
+            radius=btn_radius,
+            fill="#d15757",  # Red
+            outline="",
+            tags="btn_confirm"
         )
-        btn_confirm.pack(side="left", padx=15)
+        self.canvas.create_text(
+            (btn_confirm_x1 + btn_confirm_x2) // 2,
+            (btn_confirm_y1 + btn_confirm_y2) // 2,
+            text="Yes, Cancel Booking",
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_confirm"
+        )
+        self.canvas.tag_bind("btn_confirm", "<Button-1>", lambda e: self.on_confirm_cancel())
+        self.canvas.tag_bind("btn_confirm", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_confirm", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
         # When the page is shown, I refresh the summary text
         self.bind("<<ShowPage>>", self.load_booking_info)
@@ -475,7 +642,7 @@ class CancelBookingPage(tk.Frame):
         """I copy a few key fields into the summary label."""
         booking = getattr(self.controller, "current_booking", None)
         if not booking:
-            self.booking_info.config(text="No booking information")
+            self.canvas.itemconfig(self.booking_info_id, text="No booking information")
             return
 
         info_text = (
@@ -484,7 +651,7 @@ class CancelBookingPage(tk.Frame):
             f"Room: {booking.get('room_name', 'N/A')}\n"
             f"Check-in: {booking.get('check_in', 'N/A')}"
         )
-        self.booking_info.config(text=info_text)
+        self.canvas.itemconfig(self.booking_info_id, text=info_text)
 
     def on_confirm_cancel(self):
         """Here I call cancel_booking() and then send the user back to the home page."""
@@ -502,7 +669,7 @@ class CancelBookingPage(tk.Frame):
             messagebox.showinfo(
                 "Booking Cancelled",
                 "Your booking has been cancelled successfully.\n\n"
-                "We hope to see you again!",
+                "We look forward to your next visit!"
             )
             # I clear the reference so other pages know there is no active booking
             if hasattr(self.controller, "current_booking"):
