@@ -15,7 +15,7 @@ except ImportError:
 
 # Import booking flow pages
 from booking_flow_b import DateSelectionPage, SearchResultsPage
-from booking_flow_c import GuestInfoPage, SummaryPage  # F3+F6 合并版本
+from booking_flow_c import GuestInfoPage, SummaryPage 
 from booking_flow_d import PaymentPage, ConfirmationPage
 from manage_booking_flow import ViewBookingPage, ModifyBookingPage, CancelBookingPage
 
