@@ -1,1 +1,42 @@
-[{"confirmation_code": "A1B2", "last_name": "Lu", "room_type": "King", "check_in": "2025-11-01", "status": "Confirmed"}]
+[
+  {
+    "first_name": "Junyi",
+    "last_name": "Wu",
+    "email": "ggg@qq.com",
+    "phone": "0987654321",
+    "adults": 5,
+    "children": 0,
+    "room_type": "Suite",
+    "room_name": "Coral Family Suite",
+    "check_in": "2025-10-21",
+    "check_out": "2025-10-31",
+    "nights": 10,
+    "breakfast": false,
+    "shuttle": true,
+    "total_price": 2860.0,
+    "payment_last4": "5432",
+    "status": "Confirmed",
+    "confirmation_code": "51EF31CD",
+    "created_at": "2025-11-24"
+  },
+  {
+    "first_name": "Junyi",
+    "last_name": "Wu",
+    "email": "321123@sdfgdsf.sdg.vom",
+    "phone": "098901238908",
+    "adults": 2,
+    "children": 2,
+    "room_type": "Twin",
+    "room_name": "Sunset Twin Room",
+    "check_in": "2025-10-21",
+    "check_out": "2025-10-30",
+    "nights": 9,
+    "breakfast": true,
+    "shuttle": true,
+    "total_price": 1881.0,
+    "payment_last4": "5555",
+    "status": "Cancelled",
+    "confirmation_code": "04C1DBE1",
+    "created_at": "2025-11-24"
+  }
+]

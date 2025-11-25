@@ -235,6 +235,9 @@ class SummaryPage(tk.Frame):
         tax = room_total * 0.10  # 假设 10% 税费
         self.final_total = room_total + tax  # 存为实例变量，支付时要用
 
+        # 【新增】把总价存到 controller，供 Part D 使用
+        self.controller.booking_total = self.final_total
+
         # 5. UI 展示
         lines = [
             ("GUEST", f"{guest.get('first_name')}", 14, "bold"),
@@ -254,26 +257,9 @@ class SummaryPage(tk.Frame):
             tk.Label(row, text=value, font=("Arial", size, weight), bg="white", fg="black").pack(side="right")
 
     def process_payment(self):
-        """调用 Part D 的工具函数保存订单"""
+        """修复后：跳转到 Part D 的支付页面"""
         # 准备要保存的数据字典
-        booking_data = {
-            "first_name": self.controller.guest_info.get("first_name"),
-            "last_name": self.controller.guest_info.get("last_name"),
-            "email": self.controller.guest_info.get("email"),
-            "phone": self.controller.guest_info.get("phone"),
-            "room_type": self.controller.selected_room.get("short_type"),
-            "check_in": self.controller.current_stay.get("check_in"),
-            "nights": self.controller.current_stay.get("nights"),
-            "total_price": self.final_total,
-            "status": "Confirmed"
-        }
-
-        # 调用 Part D (booking_storage) 的函数
-        confirmation_code = booking_storage.add_booking(booking_data)
-
-        # 弹窗提示成功
-        messagebox.showinfo("Success",
-                            f"Booking Confirmed!\n\nYour Code: {confirmation_code}\nPlease save this code.")
-
-        # 回到首页
-        self.controller.show_frame("WelcomePage")
+        try:
+            self.controller.show_frame("PaymentPage")
+        except KeyError:
+            messagebox.showerror("Error", "Payment Page not found!")

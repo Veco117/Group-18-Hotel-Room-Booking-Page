@@ -308,7 +308,7 @@ class ConfirmationPage(tk.Frame):
         # Collect all booking data
         stay_info = getattr(self.controller, "current_stay", {})
         room = getattr(self.controller, "selected_room", {})
-        guests = getattr(self.controller, "guest_selection", {})
+        # guests = getattr(self.controller, "guest_selection", {})
         guest_info = getattr(self.controller, "guest_info", {})
         payment_info = getattr(self.controller, "payment_info", {})
         filters = getattr(self.controller, "current_filter", {})
@@ -320,8 +320,8 @@ class ConfirmationPage(tk.Frame):
             "last_name": guest_info.get("last_name", ""),
             "email": guest_info.get("email", ""),
             "phone": guest_info.get("phone", ""),
-            "adults": guests.get("adults", 1),
-            "children": guests.get("children", 0),
+            "adults": guest_info.get("adults", 1),
+            "children": guest_info.get("children", 0),
             "room_type": room.get("short_type", "Unknown"),
             "room_name": room.get("name", "Unknown Room"),
             "check_in": stay_info.get("check_in", ""),
@@ -345,7 +345,7 @@ class ConfirmationPage(tk.Frame):
             messagebox.showinfo(
                 "Success",
                 f"Your booking has been saved!\n\nConfirmation Code: {confirmation_code}\n\n"
-                "期待您的光临！ :)"
+                "We are looking forward to see you!:)"
             )
         except Exception as e:
             messagebox.showerror(
