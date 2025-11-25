@@ -15,7 +15,7 @@ except ImportError:
 
 # Import booking flow pages
 from booking_flow_b import DateSelectionPage, SearchResultsPage
-from booking_flow_c import GuestInfoPage, SummaryPage  # F3+F6 合并版本
+from booking_flow_c import GuestInfoPage, SummaryPage  # F3+F6 merged version
 from booking_flow_d import PaymentPage, ConfirmationPage
 from manage_booking_flow import ViewBookingPage, ModifyBookingPage, CancelBookingPage
 
@@ -1094,7 +1094,7 @@ class TVXKHotelApp(tk.Tk):
             # Booking flow pages
             DateSelectionPage,
             SearchResultsPage,
-            GuestInfoPage,  # F3+F6 合并在一起
+            GuestInfoPage,  # F3+F6 merged together
             SummaryPage,
             PaymentPage,
             ConfirmationPage,

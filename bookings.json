@@ -1,1 +1,42 @@
-[{"confirmation_code": "A1B2", "last_name": "Lu", "room_type": "King", "check_in": "2025-11-01", "status": "Confirmed"}]
+[
+  {
+    "first_name": "b",
+    "last_name": "b",
+    "email": "bb@mail.com",
+    "phone": "1111111111",
+    "adults": 1,
+    "children": 0,
+    "room_type": "Suite",
+    "room_name": "Coral Family Suite",
+    "check_in": "2025-11-25",
+    "check_out": "2025-11-26",
+    "nights": 1,
+    "breakfast": false,
+    "shuttle": false,
+    "total_price": 286.0,
+    "payment_last4": "3456",
+    "status": "Confirmed",
+    "confirmation_code": "B9672003",
+    "created_at": "2025-11-25"
+  },
+  {
+    "first_name": "b",
+    "last_name": "b",
+    "email": "bb@mail.com",
+    "phone": "1111111111",
+    "adults": 1,
+    "children": 0,
+    "room_type": "Suite",
+    "room_name": "Coral Family Suite",
+    "check_in": "2025-11-25",
+    "check_out": "2025-11-26",
+    "nights": 1,
+    "breakfast": true,
+    "shuttle": true,
+    "total_price": 357.5,
+    "payment_last4": "3456",
+    "status": "Cancelled",
+    "confirmation_code": "F9F2F6BD",
+    "created_at": "2025-11-25"
+  }
+]

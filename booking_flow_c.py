@@ -1,9 +1,38 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
-import booking_storage  # 导入 Part D 的存储功能
+import os
+
+try:
+    from PIL import Image, ImageTk
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+
+def create_round_rect_canvas(canvas, x1, y1, x2, y2, radius=20, tags=None, **kwargs):
+    """
+    Draw rounded rectangle using Canvas's create_polygon
+    This is a native Canvas method, doesn't require Pillow
+    """
+    points = [
+        x1+radius, y1,
+        x2-radius, y1,
+        x2, y1,
+        x2, y1+radius,
+        x2, y2-radius,
+        x2, y2,
+        x2-radius, y2,
+        x1+radius, y2,
+        x1, y2,
+        x1, y2-radius,
+        x1, y1+radius,
+        x1, y1
+    ]
+    if tags:
+        kwargs['tags'] = tags
+    return canvas.create_polygon(points, smooth=True, **kwargs)
 
 
-# 沿用 Part B 定义的颜色，保持风格统一
+# Use colors defined in Part B to maintain consistent style
 BG_COLOR = "#F5F5F5"
 FONT_TITLE = ("Arial", 18, "bold")
 FONT_LABEL = ("Arial", 12)
@@ -15,7 +44,7 @@ SECONDARY_FG = "#333333"
 
 class Tooltip:
     """
-    Tooltip类，在鼠标悬停或触发时，在目标控件旁边弹出一个小窗口
+    Tooltip class that displays a small window next to the target widget when hovering or triggered
     """
     def __init__(self, widget, text, timeout=2000):
         self.widget = widget
@@ -50,69 +79,206 @@ class Tooltip:
 
 class GuestInfoPage(tk.Frame):
     """
-    Part C - F3 & F6: 填写住客信息
-    设计意图: 接收用户输入，进行校验，然后存入 controller。
+    Part C - F3 & F6: Enter guest information
+    Design intent: Receive user input, validate it, and store it in controller.
     """
 
     def __init__(self, parent, controller):
         super().__init__(parent, bg=BG_COLOR)
         self.controller = controller
 
-        # 1. 标题区
-        tk.Label(self, text="Enter Guest Details", font=FONT_TITLE, bg=BG_COLOR).pack(pady=20)
+        # Create canvas for background image
+        self.canvas = tk.Canvas(self, width=900, height=600, bg=BG_COLOR, highlightthickness=0)
+        self.canvas.pack(fill="both", expand=True)
 
-        # 2. 表单容器
-        form_frame = tk.Frame(self, bg=BG_COLOR)
-        form_frame.pack(pady=10)
+        # Try to load background image
+        bg_path = "enter_guest_details_bg.png"
+        if HAS_PIL and os.path.exists(bg_path):
+            try:
+                bg_img = Image.open(bg_path)
+                bg_img = bg_img.resize((900, 600), Image.Resampling.LANCZOS)
+                self.bg_photo = ImageTk.PhotoImage(bg_img)
+                self.canvas.create_image(0, 0, image=self.bg_photo, anchor="nw")
+            except Exception as e:
+                print(f"Failed to load {bg_path}: {e}")
 
-        # --- F3: 人数选择 (Spinbox) ---
-        tk.Label(form_frame, text="Adults (>12):", font=FONT_LABEL, bg=BG_COLOR).grid(row=0, column=0, padx=10, pady=10,
-                                                                                      sticky="e")
-        self.spin_adults = tk.Spinbox(form_frame, from_=1, to=6, justify="center", width=5, font=FONT_LABEL,
+        # Center position
+        center_x = 450
+        
+        # Title: "Enter Guest Details" (dark blue text, directly on background)
+        self.canvas.create_text(
+            center_x, 140,
+            text="Enter Guest Details",
+            font=("Arial", 28, "bold"),
+            fill="#001540",  # Dark blue
+            anchor="center"
+        )
+
+        # Form elements directly on background (no white card) - multi-row, centered
+        # Up shift 1cm (approximately 40 pixels)
+        form_y_start = 200  # 200 (was 240, moved up 40 pixels)
+        row_spacing = 50  # Vertical spacing between rows
+        
+        # Field spacing (horizontal spacing between fields on same row)
+        field_spacing = 30
+        label_width = 120  # Width for label text
+        
+        # Calculate center positions for form fields (centered)
+        form_center_x = center_x
+        
+        # All labels align with Adults label, all input boxes have same width
+        # Calculate starting x position for labels (aligned with Adults)
+        entry_width = 20  # Uniform width for all Entry boxes
+        entry_width_pixels = entry_width * 8  # Approximate pixels for Entry width
+        
+        # Calculate total width of row 1 (Adults and Children)
+        row1_width = label_width + 60 + field_spacing + label_width + 60  # Adults + spacing + Children
+        row1_start_x = form_center_x - row1_width // 2
+        
+        # Adults label
+        self.canvas.create_text(
+            row1_start_x, form_y_start,
+            text="Adults (>12):",
+            font=FONT_LABEL,
+            fill="#001540",
+            anchor="w"
+        )
+        self.spin_adults = tk.Spinbox(self.canvas, from_=1, to=6, justify="center", width=5, font=FONT_LABEL,
                                       command=self.check_children)
-        self.spin_adults.grid(row=0, column=1, sticky="w")
+        self.canvas.create_window(row1_start_x + label_width, form_y_start, window=self.spin_adults, anchor="w")
 
-        tk.Label(form_frame, text="Children (<=12):", font=FONT_LABEL, bg=BG_COLOR).grid(row=0, column=2, padx=10,
-                                                                                         pady=10, sticky="e")
-        self.spin_children = tk.Spinbox(form_frame, from_=0, to=6, justify="center", width=5, font=FONT_LABEL,
+        # Children label
+        children_x = row1_start_x + label_width + 60 + field_spacing
+        self.canvas.create_text(
+            children_x, form_y_start,
+            text="Children (<=12):",
+            font=FONT_LABEL,
+            fill="#001540",
+            anchor="w"
+        )
+        self.spin_children = tk.Spinbox(self.canvas, from_=0, to=6, justify="center", width=5, font=FONT_LABEL,
                                         command=self.check_children)
-        self.spin_children.grid(row=0, column=3, sticky="w")
+        self.canvas.create_window(children_x + label_width, form_y_start, window=self.spin_children, anchor="w")
 
-        # --- F6: 个人信息 (Entry) ---
-        # Entering First Name
-        tk.Label(form_frame, text="First Name:", font=FONT_LABEL, bg=BG_COLOR).grid(row=1, column=0, padx=10, pady=10,
-                                                                                   sticky="e")
-        self.entry_first_name = tk.Entry(form_frame, width=10, font=FONT_LABEL)
-        self.entry_first_name.grid(row=1, column=1, columnspan=1, sticky="w")
-        # Entering Last Name
-        tk.Label(form_frame, text="Last Name:", font=FONT_LABEL, bg=BG_COLOR).grid(row=1, column=2, padx=10, pady=10,
-                                                                                    sticky="e")
-        self.entry_last_name = tk.Entry(form_frame, width=10, font=FONT_LABEL)
-        self.entry_last_name.grid(row=1, column=3, columnspan=1, sticky="w")
+        # Row 2: First Name (label aligned with Adults, same entry width)
+        self.canvas.create_text(
+            row1_start_x, form_y_start + row_spacing,
+            text="First Name:",
+            font=FONT_LABEL,
+            fill="#001540",
+            anchor="w"
+        )
+        self.entry_first_name = tk.Entry(self.canvas, width=entry_width, font=FONT_LABEL, bg="white")
+        self.canvas.create_window(row1_start_x + label_width, form_y_start + row_spacing, window=self.entry_first_name, anchor="w")
+        
+        # Row 3: Last Name (label aligned with Adults, same entry width)
+        self.canvas.create_text(
+            row1_start_x, form_y_start + row_spacing * 2,
+            text="Last Name:",
+            font=FONT_LABEL,
+            fill="#001540",
+            anchor="w"
+        )
+        self.entry_last_name = tk.Entry(self.canvas, width=entry_width, font=FONT_LABEL, bg="white")
+        self.canvas.create_window(row1_start_x + label_width, form_y_start + row_spacing * 2, window=self.entry_last_name, anchor="w")
+        
+        # Row 4: Email (label aligned with Adults, same entry width)
+        self.canvas.create_text(
+            row1_start_x, form_y_start + row_spacing * 3,
+            text="Email:",
+            font=FONT_LABEL,
+            fill="#001540",
+            anchor="w"
+        )
+        self.entry_email = tk.Entry(self.canvas, width=entry_width, font=FONT_LABEL, bg="white")
+        self.canvas.create_window(row1_start_x + label_width, form_y_start + row_spacing * 3, window=self.entry_email, anchor="w")
 
-        # 邮箱
-        tk.Label(form_frame, text="Email:", font=FONT_LABEL, bg=BG_COLOR).grid(row=2, column=0, padx=10, pady=10,
-                                                                               sticky="e")
-        self.entry_email = tk.Entry(form_frame, width=30, font=FONT_LABEL)
-        self.entry_email.grid(row=2, column=1, columnspan=4, sticky="w")
+        # Row 5: Phone Number (label aligned with Adults, same entry width)
+        self.canvas.create_text(
+            row1_start_x, form_y_start + row_spacing * 4,
+            text="Phone Number:",
+            font=FONT_LABEL,
+            fill="#001540",
+            anchor="w"
+        )
+        self.entry_phone = tk.Entry(self.canvas, width=entry_width, font=FONT_LABEL, bg="white")
+        self.canvas.create_window(row1_start_x + label_width, form_y_start + row_spacing * 4, window=self.entry_phone, anchor="w")
 
-        # 电话
-        tk.Label(form_frame, text="Phone:", font=FONT_LABEL, bg=BG_COLOR).grid(row=3, column=0, padx=10, pady=10,
-                                                                               sticky="e")
-        self.entry_phone = tk.Entry(form_frame, width=30, font=FONT_LABEL)
-        self.entry_phone.grid(row=3, column=1, columnspan=4, sticky="w")
+        # Button dimensions (directly on background)
+        btn_width = 180
+        btn_height = 40
+        btn_radius = 10
+        btn_spacing = 30
+        btn_y = 500  # Button Y position
+        
+        # Calculate button positions
+        total_width = btn_width * 2 + btn_spacing
+        start_x = center_x - total_width // 2
+        
+        # "Back to dates" button (light blue-grey background, white text)
+        btn_back_x1 = start_x
+        btn_back_y1 = btn_y - btn_height // 2
+        btn_back_x2 = btn_back_x1 + btn_width
+        btn_back_y2 = btn_back_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_back_x1, btn_back_y1, btn_back_x2, btn_back_y2,
+            radius=btn_radius,
+            fill="#6e88b9",  # Blue color
+            outline="",
+            tags="btn_back"
+        )
+        self.canvas.create_text(
+            (btn_back_x1 + btn_back_x2) // 2,
+            (btn_back_y1 + btn_back_y2) // 2,
+            text="Back to dates",
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_back"
+        )
+        self.canvas.tag_bind("btn_back", "<Button-1>", lambda e: controller.show_frame("SearchResultsPage"))
+        self.canvas.tag_bind("btn_back", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_back", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
-        # 3. 底部按钮区
-        btn_frame = tk.Frame(self, bg=BG_COLOR)
-        btn_frame.pack(pady=30)
-
-        # 返回按钮 (回到搜索结果页)
-        tk.Button(btn_frame, text="Back", font=FONT_BUTTON, bg=SECONDARY_BG, fg=SECONDARY_FG, width=12,
-                  command=lambda: controller.show_frame("SearchResultsPage")).pack(side="left", padx=20)
-
-        # 继续按钮 (触发校验和跳转)
-        tk.Button(btn_frame, text="Choose Your Room", font=FONT_BUTTON, bg=PRIMARY_BG, fg=PRIMARY_FG, width=15,
-                  command=self.validate_and_proceed).pack(side="left", padx=20)
+        # "Continue" button (dark purple/blue background, white text, with thin border)
+        btn_continue_x1 = start_x + btn_width + btn_spacing
+        btn_continue_y1 = btn_y - btn_height // 2
+        btn_continue_x2 = btn_continue_x1 + btn_width
+        btn_continue_y2 = btn_continue_y1 + btn_height
+        
+        # Draw border first (thin border)
+        create_round_rect_canvas(
+            self.canvas,
+            btn_continue_x1 - 1, btn_continue_y1 - 1, btn_continue_x2 + 1, btn_continue_y2 + 1,
+            radius=btn_radius + 1,
+            fill="#000636",  # Border color
+            outline="",
+            tags="btn_continue_border"
+        )
+        # Then draw button background
+        create_round_rect_canvas(
+            self.canvas,
+            btn_continue_x1, btn_continue_y1, btn_continue_x2, btn_continue_y2,
+            radius=btn_radius,
+            fill="#000636",  # Button background color
+            outline="",
+            tags="btn_continue"
+        )
+        self.canvas.create_text(
+            (btn_continue_x1 + btn_continue_x2) // 2,
+            (btn_continue_y1 + btn_continue_y2) // 2,
+            text="Continue",
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_continue"
+        )
+        self.canvas.tag_bind("btn_continue", "<Button-1>", lambda e: self.validate_and_proceed())
+        self.canvas.tag_bind("btn_continue", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_continue", "<Leave>", lambda e: self.canvas.config(cursor=""))
+        self.canvas.tag_bind("btn_continue_border", "<Button-1>", lambda e: self.validate_and_proceed())
+        self.canvas.tag_bind("btn_continue_border", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_continue_border", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
     def check_children(self):
         """Ensure children < adults and total ≤ 6."""
@@ -143,13 +309,14 @@ class GuestInfoPage(tk.Frame):
             tooltip.show()
 
     def validate_and_proceed(self):
-        """逻辑处理：数据校验与保存"""
+        """Logic processing: data validation and saving"""
+        # Get first name and last name from separate fields
         first_name = self.entry_first_name.get().strip()
         last_name = self.entry_last_name.get().strip()
         email = self.entry_email.get().strip()
         phone = self.entry_phone.get().strip()
 
-        # 简单的校验逻辑 (F6 要求)
+        # Simple validation logic (F6 requirement)
         if not first_name or any(char.isdigit() for char in first_name):
             messagebox.showerror("Error", "Please enter a valid first name (no numbers).")
             return
@@ -157,15 +324,15 @@ class GuestInfoPage(tk.Frame):
             messagebox.showerror("Error", "Please enter a valid last name (no numbers).")
             return
         if "@" not in email or "." not in email:
-            # TODO: 改为使用regex检查email
+            # TODO: Change to use regex for email validation
             messagebox.showerror("Error", "Please enter a valid email address.")
             return
         if not phone.isdigit() or len(phone) < 8:
             messagebox.showerror("Error", "Please enter a valid phone number (digits only).")
             return
-        # TODO: 检查儿童数量和成人数量区别
+        # TODO: Check the difference between children and adults count
 
-        # 保存数据到 Controller (共享数据)
+        # Save data to Controller (shared data)
         self.controller.guest_info = {
             "first_name": first_name,
             "last_name": last_name,
@@ -175,67 +342,155 @@ class GuestInfoPage(tk.Frame):
             "children": int(self.spin_children.get())
         }
 
-        # 跳转到订单汇总页面
+        # Navigate to booking summary page
         self.controller.show_frame("SummaryPage")
 
 
 class SummaryPage(tk.Frame):
     """
-    Part C - F7: 订单汇总、计价与支付调用
+    Part C - F7: Booking summary, pricing and payment call
     """
 
     def __init__(self, parent, controller):
         super().__init__(parent, bg=BG_COLOR)
         self.controller = controller
 
-        tk.Label(self, text="Step 4 - Booking Summary", font=FONT_TITLE, bg=BG_COLOR).pack(pady=20)
+        # Create canvas for background image
+        self.canvas = tk.Canvas(self, width=900, height=600, bg=BG_COLOR, highlightthickness=0)
+        self.canvas.pack(fill="both", expand=True)
 
-        # 显示信息的区域 (使用 Label 列表展示)
-        self.info_frame = tk.Frame(self, bg="white", bd=1, relief="solid", padx=20, pady=20)
-        self.info_frame.pack(fill="both", expand=True, padx=50, pady=10)
+        # Try to load background image
+        bg_path = "booking_sumary_bg.png"
+        if HAS_PIL and os.path.exists(bg_path):
+            try:
+                bg_img = Image.open(bg_path)
+                bg_img = bg_img.resize((900, 600), Image.Resampling.LANCZOS)
+                self.bg_photo = ImageTk.PhotoImage(bg_img)
+                self.canvas.create_image(0, 0, image=self.bg_photo, anchor="nw")
+            except Exception as e:
+                print(f"Failed to load {bg_path}: {e}")
 
-        # 底部按钮
-        btn_frame = tk.Frame(self, bg=BG_COLOR)
-        btn_frame.pack(pady=20)
+        # Center position
+        center_x = 450
+        
+        # Title: "Booking Summary" (dark blue text, directly on background)
+        self.canvas.create_text(
+            center_x, 50,
+            text="Booking Summary",
+            font=("Arial", 28, "bold"),
+            fill="#001540",  # Dark blue, same as Continue button
+            anchor="center"
+        )
 
-        tk.Button(btn_frame, text="Edit Details", font=FONT_BUTTON, bg=SECONDARY_BG, fg=SECONDARY_FG, width=12,
-                  command=lambda: controller.show_frame("GuestInfoPage")).pack(side="left", padx=20)
+        # Information display area (white background Frame for readability)
+        self.info_frame = tk.Frame(self.canvas, bg="white")
+        self.canvas.create_window(center_x, 280, window=self.info_frame, anchor="center", width=700, height=300)
 
-        # 确认支付按钮 (调用 Part D)
-        tk.Button(btn_frame, text="Confirm & Pay", font=FONT_BUTTON, bg="green", fg="white", width=15,
-                  command=self.process_payment).pack(side="left", padx=20)
+        # Button dimensions (same as other pages)
+        btn_width = 200
+        btn_height = 45
+        btn_radius = 10
+        btn_spacing = 30
+        btn_y = 500  # Button Y position
+        
+        # Calculate button positions
+        total_width = btn_width * 2 + btn_spacing
+        start_x = center_x - total_width // 2
+        
+        # "Edit Details" button (darker blue background, white text)
+        btn_back_x1 = start_x
+        btn_back_y1 = btn_y - btn_height // 2
+        btn_back_x2 = btn_back_x1 + btn_width
+        btn_back_y2 = btn_back_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_back_x1, btn_back_y1, btn_back_x2, btn_back_y2,
+            radius=btn_radius,
+            fill="#8abccf",  # Light blue color
+            outline="",
+            tags="btn_back"
+        )
+        self.canvas.create_text(
+            (btn_back_x1 + btn_back_x2) // 2,
+            (btn_back_y1 + btn_back_y2) // 2,
+            text="Edit Details",
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_back"
+        )
+        self.canvas.tag_bind("btn_back", "<Button-1>", lambda e: controller.show_frame("GuestInfoPage"))
+        self.canvas.tag_bind("btn_back", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_back", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
-        # ★ 关键：每次显示页面时，触发数据刷新
+        # "Confirm & Pay" button (dark blue background, white text)
+        btn_pay_x1 = start_x + btn_width + btn_spacing
+        btn_pay_y1 = btn_y - btn_height // 2
+        btn_pay_x2 = btn_pay_x1 + btn_width
+        btn_pay_y2 = btn_pay_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_pay_x1, btn_pay_y1, btn_pay_x2, btn_pay_y2,
+            radius=btn_radius,
+            fill="#001540",  # Dark blue (same as Continue button)
+            outline="",
+            tags="btn_pay"
+        )
+        self.canvas.create_text(
+            (btn_pay_x1 + btn_pay_x2) // 2,
+            (btn_pay_y1 + btn_pay_y2) // 2,
+            text="Confirm & Pay",
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_pay"
+        )
+        self.canvas.tag_bind("btn_pay", "<Button-1>", lambda e: self.process_payment())
+        self.canvas.tag_bind("btn_pay", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_pay", "<Leave>", lambda e: self.canvas.config(cursor=""))
+
+        # Key: Trigger data refresh every time the page is shown
         self.bind("<<ShowPage>>", self.refresh_data)
 
     def refresh_data(self, event=None):
-        """动态读取 Controller 中的数据并计算价格"""
-        # 1. 清空旧内容
+        """Dynamically read data from Controller and calculate price"""
+        # 1. Clear old content
         for widget in self.info_frame.winfo_children():
             widget.destroy()
 
-        # 2. 安全地获取数据 (防止报错)
+        # 2. Safely get data (prevent errors)
         stay = getattr(self.controller, "current_stay", {})
         room = getattr(self.controller, "selected_room", {})
         guest = getattr(self.controller, "guest_info", {})
+        filters = getattr(self.controller, "current_filter", {})
 
         if not stay or not room:
             tk.Label(self.info_frame, text="Missing booking info.", bg="white").pack()
             return
 
-        # 3. 提取变量
+        # 3. Extract variables
         check_in = stay.get("check_in")
         nights = stay.get("nights", 0)
         room_name = room.get("name", "Unknown")
         price_per_night = float(room.get("price", 0))
         adults = guest.get("adults", 1)
 
-        # 4. 价格计算 (F7 核心逻辑)
+        # 4. Price calculation (F7 core logic)
         room_total = price_per_night * nights
-        tax = room_total * 0.10  # 假设 10% 税费
-        self.final_total = room_total + tax  # 存为实例变量，支付时要用
+        
+        # Add breakfast and shuttle fees
+        breakfast_fee = 0.0
+        shuttle_fee = 0.0
+        if filters.get("Breakfast", False):
+            breakfast_fee = 40.0
+        if filters.get("Shuttle", False):
+            shuttle_fee = 25.0
+        
+        subtotal = room_total + breakfast_fee + shuttle_fee
+        tax = subtotal * 0.10  # Assume 10% tax
+        self.final_total = subtotal + tax  # Store as instance variable for payment use
 
-        # 5. UI 展示
+        # 5. UI display
         lines = [
             ("GUEST", f"{guest.get('first_name')}", 14, "bold"),
             ("Room Type", f"{room_name}", 12, "normal"),
@@ -243,9 +498,18 @@ class SummaryPage(tk.Frame):
             ("Guests", f"{adults} Adults, {guest.get('children')} Children", 12, "normal"),
             ("-" * 40, "", 10, "normal"),
             ("Room Charge", f"${room_total:.2f}", 12, "normal"),
+        ]
+        
+        # Add breakfast and shuttle fees to display if selected
+        if breakfast_fee > 0:
+            lines.append(("Breakfast", f"${breakfast_fee:.2f}", 12, "normal"))
+        if shuttle_fee > 0:
+            lines.append(("Airport Shuttle", f"${shuttle_fee:.2f}", 12, "normal"))
+        
+        lines.extend([
             ("Tax (10%)", f"${tax:.2f}", 12, "normal"),
             ("TOTAL DUE", f"${self.final_total:.2f}", 16, "bold")
-        ]
+        ])
 
         for title, value, size, weight in lines:
             row = tk.Frame(self.info_frame, bg="white")
@@ -254,26 +518,9 @@ class SummaryPage(tk.Frame):
             tk.Label(row, text=value, font=("Arial", size, weight), bg="white", fg="black").pack(side="right")
 
     def process_payment(self):
-        """调用 Part D 的工具函数保存订单"""
-        # 准备要保存的数据字典
-        booking_data = {
-            "first_name": self.controller.guest_info.get("first_name"),
-            "last_name": self.controller.guest_info.get("last_name"),
-            "email": self.controller.guest_info.get("email"),
-            "phone": self.controller.guest_info.get("phone"),
-            "room_type": self.controller.selected_room.get("short_type"),
-            "check_in": self.controller.current_stay.get("check_in"),
-            "nights": self.controller.current_stay.get("nights"),
-            "total_price": self.final_total,
-            "status": "Confirmed"
-        }
+        """Navigate to payment page (PaymentPage)"""
+        # Save total price to controller for PaymentPage use
+        self.controller.total_price = self.final_total
 
-        # 调用 Part D (booking_storage) 的函数
-        confirmation_code = booking_storage.add_booking(booking_data)
-
-        # 弹窗提示成功
-        messagebox.showinfo("Success",
-                            f"Booking Confirmed!\n\nYour Code: {confirmation_code}\nPlease save this code.")
-
-        # 回到首页
-        self.controller.show_frame("WelcomePage")
+        # Navigate to payment page
+        self.controller.show_frame("PaymentPage")

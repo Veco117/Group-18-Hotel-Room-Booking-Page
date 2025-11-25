@@ -6,14 +6,46 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
+import os
+
+try:
+    from PIL import Image, ImageTk
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
 
 try:
     from tkcalendar import DateEntry
     HAS_TKCALENDAR = True
+    print("tkcalendar loaded - Calendar widgets will be used")
 except ImportError:
     HAS_TKCALENDAR = False
+    print("tkcalendar not found - Using text entry instead")
 
 from rooms_data import filter_rooms
+
+def create_round_rect_canvas(canvas, x1, y1, x2, y2, radius=20, tags=None, **kwargs):
+    """
+    Draw rounded rectangle using Canvas's create_polygon
+    This is a native Canvas method, doesn't require Pillow
+    """
+    points = [
+        x1+radius, y1,
+        x2-radius, y1,
+        x2, y1,
+        x2, y1+radius,
+        x2, y2-radius,
+        x2, y2,
+        x2-radius, y2,
+        x1+radius, y2,
+        x1, y2,
+        x1, y2-radius,
+        x1, y1+radius,
+        x1, y1
+    ]
+    if tags:
+        kwargs['tags'] = tags
+    return canvas.create_polygon(points, smooth=True, **kwargs)
 
 BG_COLOR = "#F5F5F5"
 FONT_TITLE = ("Arial", 18, "bold")
@@ -36,68 +68,144 @@ class DateSelectionPage(tk.Frame):
         super().__init__(parent, bg=BG_COLOR)
         self.controller = controller
 
-        title = tk.Label(self, text="Step 1 - Select dates", font=FONT_TITLE, bg=BG_COLOR)
-        title.pack(pady=(10, 5))
+        # Create canvas for background image
+        self.canvas = tk.Canvas(self, width=900, height=600, bg=BG_COLOR, highlightthickness=0)
+        self.canvas.pack(fill="both", expand=True)
 
-        info = tk.Label(
-            self,
-            text="I ask you to choose a check-in date and a check-out date.\n"
-                 "Then I will calculate how many nights you will stay.",
-            font=("Arial", 10, "italic"),
-            bg=BG_COLOR,
+        # Try to load background image (blurred beach scene)
+        bg_path = "dates_bg.png"
+        if HAS_PIL and os.path.exists(bg_path):
+            try:
+                bg_img = Image.open(bg_path)
+                bg_img = bg_img.resize((900, 600), Image.Resampling.LANCZOS)
+                self.bg_photo = ImageTk.PhotoImage(bg_img)
+                self.canvas.create_image(0, 0, image=self.bg_photo, anchor="nw")
+            except Exception as e:
+                print(f"Failed to load {bg_path}: {e}")
+
+        # Center position for content
+        center_x = 450
+        center_y = 300
+        
+        # Title: "Select dates" (dark blue text, same as Continue button)
+        self.canvas.create_text(
+            center_x, 120,
+            text="Select dates",
+            font=("Arial", 28, "bold"),
+            fill="#001540",  # Dark blue, same as Continue button
+            anchor="center"
         )
-        info.pack(pady=(0, 10))
 
-        form = tk.Frame(self, bg=BG_COLOR)
-        form.pack(pady=10)
-
-        # Check-in
-        tk.Label(form, text="Check-in date", font=FONT_LABEL, bg=BG_COLOR).grid(
-            row=0, column=0, padx=8, pady=5, sticky="e"
-        )
-        if HAS_TKCALENDAR:
-            self.entry_check_in = DateEntry(form, date_pattern="yyyy-mm-dd", width=18)
-        else:
-            self.entry_check_in = tk.Entry(form, width=20, font=FONT_LABEL)
-            self.entry_check_in.insert(0, "YYYY-MM-DD")
-        self.entry_check_in.grid(row=0, column=1, padx=8, pady=5)
-
-        # Check-out
-        tk.Label(form, text="Check-out date", font=FONT_LABEL, bg=BG_COLOR).grid(
-            row=1, column=0, padx=8, pady=5, sticky="e"
-        )
-        if HAS_TKCALENDAR:
-            self.entry_check_out = DateEntry(form, date_pattern="yyyy-mm-dd", width=18)
-        else:
-            self.entry_check_out = tk.Entry(form, width=20, font=FONT_LABEL)
-            self.entry_check_out.insert(0, "YYYY-MM-DD")
-        self.entry_check_out.grid(row=1, column=1, padx=8, pady=5)
-
-        # Bottom buttons
-        buttons = tk.Frame(self, bg=BG_COLOR)
-        buttons.pack(pady=20)
-
-        btn_back = tk.Button(
-            buttons,
-            text="Back to home",
+        # Instructional text (dark blue text)
+        self.canvas.create_text(
+            center_x, 170,
+            text="Start by choosing your check-in and check-out dates.\nWe'll calculate the number of nights for you.",
             font=("Arial", 12),
-            bg=SECONDARY_BG,
-            fg=SECONDARY_FG,
-            width=12,
-            command=lambda: controller.show_frame("WelcomePage"),
+            fill="#001540",  # Dark blue, same as Continue button
+            anchor="center",
+            justify="center"
         )
-        btn_back.pack(side="left", padx=10)
 
-        btn_next = tk.Button(
-            buttons,
-            text="Continue",
-            font=FONT_BUTTON,
-            bg=PRIMARY_BG,
-            fg=PRIMARY_FG,
-            width=15,
-            command=self.on_continue,
+        # Check-in date label (drawn on canvas) - even closer to input
+        checkin_label_x = center_x - 50
+        checkin_label_y = center_y - 30
+        self.canvas.create_text(
+            checkin_label_x, checkin_label_y,
+            text="Check-in date:",
+            font=("Arial", 12, "bold"),
+            fill="#001540",  # Dark blue, same as Continue button
+            anchor="e"
         )
-        btn_next.pack(side="left", padx=10)
+        
+        # Check-in date input (placed on canvas) - even closer to label
+        if HAS_TKCALENDAR:
+            self.entry_check_in = DateEntry(self.canvas, date_pattern="yyyy-mm-dd", width=18)
+        else:
+            self.entry_check_in = tk.Entry(self.canvas, width=22, font=("Arial", 11), bg="white")
+            self.entry_check_in.insert(0, "YYYY-MM-DD")
+        self.canvas.create_window(center_x + 5, checkin_label_y, window=self.entry_check_in, anchor="w")
+
+        # Check-out date label (drawn on canvas) - even closer to input
+        checkout_label_x = center_x - 50
+        checkout_label_y = center_y + 20
+        self.canvas.create_text(
+            checkout_label_x, checkout_label_y,
+            text="Check-out date:",
+            font=("Arial", 12, "bold"),
+            fill="#001540",  # Dark blue, same as Continue button
+            anchor="e"
+        )
+        
+        # Check-out date input (placed on canvas) - even closer to label
+        if HAS_TKCALENDAR:
+            self.entry_check_out = DateEntry(self.canvas, date_pattern="yyyy-mm-dd", width=18)
+        else:
+            self.entry_check_out = tk.Entry(self.canvas, width=22, font=("Arial", 11), bg="white")
+            self.entry_check_out.insert(0, "YYYY-MM-DD")
+        self.canvas.create_window(center_x + 5, checkout_label_y, window=self.entry_check_out, anchor="w")
+
+        # Button dimensions
+        btn_width = 200
+        btn_height = 45
+        btn_radius = 10
+        btn_spacing = 30
+        btn_y = 450  # Button Y position
+        
+        # Calculate button positions
+        total_width = btn_width * 2 + btn_spacing
+        start_x = center_x - total_width // 2
+        
+        # "Back to choices" button (darker blue background, white text)
+        btn_back_x1 = start_x
+        btn_back_y1 = btn_y - btn_height // 2
+        btn_back_x2 = btn_back_x1 + btn_width
+        btn_back_y2 = btn_back_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_back_x1, btn_back_y1, btn_back_x2, btn_back_y2,
+            radius=btn_radius,
+            fill="#5A9BC4",  # Darker blue (deeper than #B0E0E6)
+            outline="",
+            tags="btn_back"
+        )
+        self.canvas.create_text(
+            (btn_back_x1 + btn_back_x2) // 2,
+            (btn_back_y1 + btn_back_y2) // 2,
+            text="Back to choices",
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_back"
+        )
+        self.canvas.tag_bind("btn_back", "<Button-1>", lambda e: controller.show_frame("WelcomePage"))
+        self.canvas.tag_bind("btn_back", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_back", "<Leave>", lambda e: self.canvas.config(cursor=""))
+
+        # "Continue" button (dark blue background, white text)
+        btn_next_x1 = start_x + btn_width + btn_spacing
+        btn_next_y1 = btn_y - btn_height // 2
+        btn_next_x2 = btn_next_x1 + btn_width
+        btn_next_y2 = btn_next_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_next_x1, btn_next_y1, btn_next_x2, btn_next_y2,
+            radius=btn_radius,
+            fill="#001540",  # Dark blue
+            outline="",
+            tags="btn_next"
+        )
+        self.canvas.create_text(
+            (btn_next_x1 + btn_next_x2) // 2,
+            (btn_next_y1 + btn_next_y2) // 2,
+            text="Continue",
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_next"
+        )
+        self.canvas.tag_bind("btn_next", "<Button-1>", lambda e: self.on_continue())
+        self.canvas.tag_bind("btn_next", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_next", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
     def on_continue(self):
         raw_in = self.entry_check_in.get().strip()
@@ -146,19 +254,48 @@ class SearchResultsPage(tk.Frame):
         super().__init__(parent, bg=BG_COLOR)
         self.controller = controller
 
-        title = tk.Label(self, text="Available rooms", font=FONT_TITLE, bg=BG_COLOR)
-        title.pack(pady=(10, 5))
+        # Create canvas for background image
+        self.canvas = tk.Canvas(self, width=900, height=600, bg=BG_COLOR, highlightthickness=0)
+        self.canvas.pack(fill="both", expand=True)
 
-        self.info_label = tk.Label(
-            self,
-            text="",
-            font=FONT_LABEL,
-            bg=BG_COLOR,
+        # Try to load background image
+        bg_path = "available_rooms_bg.png"
+        if HAS_PIL and os.path.exists(bg_path):
+            try:
+                bg_img = Image.open(bg_path)
+                bg_img = bg_img.resize((900, 600), Image.Resampling.LANCZOS)
+                self.bg_photo = ImageTk.PhotoImage(bg_img)
+                self.canvas.create_image(0, 0, image=self.bg_photo, anchor="nw")
+            except Exception as e:
+                print(f"Failed to load {bg_path}: {e}")
+
+        # Center position
+        center_x = 450
+        
+        # Title: "Available rooms" (dark blue text, directly on background)
+        self.canvas.create_text(
+            center_x, 50,
+            text="Available rooms",
+            font=("Arial", 28, "bold"),
+            fill="#001540",  # Dark blue, same as Continue button
+            anchor="center"
         )
-        self.info_label.pack(pady=(0, 10))
+
+        # Info label (will be updated dynamically, drawn on canvas) - moved down
+        self.info_text_id = self.canvas.create_text(
+            center_x, 130,
+            text="",
+            font=("Arial", 12),
+            fill="#001540",  # Dark blue
+            anchor="center"
+        )
+
+        # Treeview frame (white background for readability) - moved down
+        tree_frame = tk.Frame(self.canvas, bg="white")
+        self.canvas.create_window(center_x, 300, window=tree_frame, anchor="center", width=800, height=250)
 
         columns = ("name", "type", "floor", "price", "total")
-        self.tree = ttk.Treeview(self, columns=columns, show="headings", height=8)
+        self.tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=8)
         self.tree.heading("name", text="Room")
         self.tree.heading("type", text="Type")
         self.tree.heading("floor", text="Floor")
@@ -171,32 +308,70 @@ class SearchResultsPage(tk.Frame):
         self.tree.column("price", width=120, anchor="e")
         self.tree.column("total", width=120, anchor="e")
 
-        self.tree.pack(padx=20, pady=10, fill="x")
+        self.tree.pack(padx=20, pady=10, fill="both", expand=True)
 
-        buttons = tk.Frame(self, bg=BG_COLOR)
-        buttons.pack(pady=15)
-
-        btn_back = tk.Button(
-            buttons,
+        # Button dimensions (same as date selection page)
+        btn_width = 200
+        btn_height = 45
+        btn_radius = 10
+        btn_spacing = 30
+        btn_y = 500  # Button Y position
+        
+        # Calculate button positions
+        total_width = btn_width * 2 + btn_spacing
+        start_x = center_x - total_width // 2
+        
+        # "Back to filters" button (grey background, white text)
+        btn_back_x1 = start_x
+        btn_back_y1 = btn_y - btn_height // 2
+        btn_back_x2 = btn_back_x1 + btn_width
+        btn_back_y2 = btn_back_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_back_x1, btn_back_y1, btn_back_x2, btn_back_y2,
+            radius=btn_radius,
+            fill="#908080",  # Grey color
+            outline="",
+            tags="btn_back"
+        )
+        self.canvas.create_text(
+            (btn_back_x1 + btn_back_x2) // 2,
+            (btn_back_y1 + btn_back_y2) // 2,
             text="Back to filters",
-            font=("Arial", 12),
-            bg=SECONDARY_BG,
-            fg=SECONDARY_FG,
-            width=12,
-            command=lambda: controller.show_frame("FilterPage"),
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_back"
         )
-        btn_back.pack(side="left", padx=10)
+        self.canvas.tag_bind("btn_back", "<Button-1>", lambda e: controller.show_frame("FilterPage"))
+        self.canvas.tag_bind("btn_back", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_back", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
-        btn_choose = tk.Button(
-            buttons,
-            text="Use this room",
-            font=FONT_BUTTON,
-            bg=PRIMARY_BG,
-            fg=PRIMARY_FG,
-            width=15,
-            command=self.on_choose,
+        # "Use this room" button (dark blue background, white text)
+        btn_choose_x1 = start_x + btn_width + btn_spacing
+        btn_choose_y1 = btn_y - btn_height // 2
+        btn_choose_x2 = btn_choose_x1 + btn_width
+        btn_choose_y2 = btn_choose_y1 + btn_height
+        
+        create_round_rect_canvas(
+            self.canvas,
+            btn_choose_x1, btn_choose_y1, btn_choose_x2, btn_choose_y2,
+            radius=btn_radius,
+            fill="#001540",  # Dark blue (same as Continue button)
+            outline="",
+            tags="btn_choose"
         )
-        btn_choose.pack(side="left", padx=10)
+        self.canvas.create_text(
+            (btn_choose_x1 + btn_choose_x2) // 2,
+            (btn_choose_y1 + btn_choose_y2) // 2,
+            text="Book this room",
+            font=("Arial", 12, "bold"),
+            fill="white",
+            tags="btn_choose"
+        )
+        self.canvas.tag_bind("btn_choose", "<Button-1>", lambda e: self.on_choose())
+        self.canvas.tag_bind("btn_choose", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_choose", "<Leave>", lambda e: self.canvas.config(cursor=""))
 
         # I refresh the table whenever this page is shown.
         self.bind("<<ShowPage>>", self.on_show)
@@ -210,13 +385,15 @@ class SearchResultsPage(tk.Frame):
         stay_info = getattr(self.controller, "current_stay", None)
 
         if not filters:
-            self.info_label.config(
+            self.canvas.itemconfig(
+                self.info_text_id,
                 text="I do not have any filters yet. Please go back and choose room filters first."
             )
             return
 
         if not stay_info:
-            self.info_label.config(
+            self.canvas.itemconfig(
+                self.info_text_id,
                 text="I do not know the stay length yet. Please choose dates first."
             )
             return
@@ -228,12 +405,14 @@ class SearchResultsPage(tk.Frame):
         self.controller.search_results = rooms
 
         if not rooms:
-            self.info_label.config(
+            self.canvas.itemconfig(
+                self.info_text_id,
                 text="No rooms matched these filters. Please change the options and try again."
             )
             return
 
-        self.info_label.config(
+        self.canvas.itemconfig(
+            self.info_text_id,
             text=f"I found {len(rooms)} room type(s) for {nights} night(s), starting on {check_in}."
         )
 
