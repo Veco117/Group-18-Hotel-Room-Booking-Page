@@ -180,8 +180,8 @@ class ModifyBookingPage(tk.Frame):
             self,
             text=(
                 "Update your booking information below.\n"
-                "Note: I do not change room type or dates here.\n"
-                "If you want to change those, please cancel and create a new booking."
+                "Note: room type or dates cannot be modified here.\n"
+                "If you wish to change those, please cancel current booking and create a new booking."
             ),
             font=("Arial", 10, "italic"),
             bg=BG_COLOR,
