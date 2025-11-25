@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
-import booking_storage  # 导入 Part D 的存储功能
+import re
 
 
 # 沿用 Part B 定义的颜色，保持风格统一
@@ -111,7 +111,7 @@ class GuestInfoPage(tk.Frame):
                   command=lambda: controller.show_frame("SearchResultsPage")).pack(side="left", padx=20)
 
         # 继续按钮 (触发校验和跳转)
-        tk.Button(btn_frame, text="Choose Your Room", font=FONT_BUTTON, bg=PRIMARY_BG, fg=PRIMARY_FG, width=15,
+        tk.Button(btn_frame, text="Continue to Review Booking", font=FONT_BUTTON, bg=PRIMARY_BG, fg=PRIMARY_FG, width=15,
                   command=self.validate_and_proceed).pack(side="left", padx=20)
 
     def check_children(self):
@@ -124,7 +124,7 @@ class GuestInfoPage(tk.Frame):
             self.spin_children.insert(0, "0")
             return
 
-        tooltip = Tooltip(self.spin_children, "Children must be less than adults and total ≤ 6!")
+        tooltip = Tooltip(self.spin_children, "Children must be less than adults and no more than 6 people in total")
 
         # Rule 1：children counts < adults count
         if children >= adults:
@@ -156,14 +156,25 @@ class GuestInfoPage(tk.Frame):
         if not last_name or any(char.isdigit() for char in last_name):
             messagebox.showerror("Error", "Please enter a valid last name (no numbers).")
             return
-        if "@" not in email or "." not in email:
-            # TODO: 改为使用regex检查email
-            messagebox.showerror("Error", "Please enter a valid email address.")
+
+        # ================== 修改开始 ==================
+        # 使用 Regex 校验邮箱格式
+        # 解释:
+        # ^[a-zA-Z0-9._%+-]+  : 用户名部分 (允许字母、数字、点、下划线等)
+        # @                   : 必须包含 @ 符号
+        # [a-zA-Z0-9.-]+      : 域名部分 (例如 gmail, hotmail)
+        # \.                  : 必须包含点
+        # [a-zA-Z]{2,}$       : 顶级域名 (例如 com, org, cn)，至少2个字母
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+        if not re.match(email_pattern, email):
+            messagebox.showerror("Error", "Please enter a valid email address (e.g., user@example.com).")
             return
+        # ================== 修改结束 ==================
+
         if not phone.isdigit() or len(phone) < 8:
             messagebox.showerror("Error", "Please enter a valid phone number (digits only).")
             return
-        # TODO: 检查儿童数量和成人数量区别
 
         # 保存数据到 Controller (共享数据)
         self.controller.guest_info = {
