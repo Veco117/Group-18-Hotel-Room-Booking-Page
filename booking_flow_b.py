@@ -14,7 +14,6 @@ try:
 except ImportError:
     HAS_PIL = False
 
-import python_ta
 
 try:
     from tkcalendar import DateEntry
@@ -389,14 +388,14 @@ class SearchResultsPage(tk.Frame):
         if not filters:
             self.canvas.itemconfig(
                 self.info_text_id,
-                text="I do not have any filters yet. Please go back and choose room filters first."
+                text="You do not have any filters yet. Please go back and choose room filters first."
             )
             return
 
         if not stay_info:
             self.canvas.itemconfig(
                 self.info_text_id,
-                text="I do not know the stay length yet. Please choose dates first."
+                text="You do not know the stay length yet. Please choose dates first."
             )
             return
 
@@ -415,7 +414,7 @@ class SearchResultsPage(tk.Frame):
 
         self.canvas.itemconfig(
             self.info_text_id,
-            text=f"I found {len(rooms)} room type(s) for {nights} night(s), starting on {check_in}."
+            text=f"You found {len(rooms)} room type(s) for {nights} night(s), starting on {check_in}."
         )
 
         for room in rooms:
@@ -468,7 +467,3 @@ class SearchResultsPage(tk.Frame):
         except KeyError:
             # If the page does not exist yet I send the user back home.
             self.controller.show_frame("WelcomePage")
-
-if __name__ == "__main__":
-    import python_ta
-    python_ta.check_all()
