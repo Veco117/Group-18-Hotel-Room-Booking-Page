@@ -3,11 +3,10 @@
 Requirments:
 Python 3.10 or 3.11+
 TKinter
-Extra library that required: pillow, tkcalender, python ta.
+Extra library that required: pillow, tkcalender.
 quick download command:
 python -m pip install pillow
 python -m pip install tkcalendar
-python -m pip install python_ta
 
 How to run:
 Download the code into zip file by click top right corner "Code".
