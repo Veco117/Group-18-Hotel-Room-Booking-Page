@@ -5,7 +5,7 @@
 import json
 import os
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(BASE_DIR, "bookings.json")
@@ -48,7 +48,7 @@ def add_booking(booking_data):
 
     booking_data is expected to be a simple dict with keys like:
     first_name, last_name, email, phone, room_type, check_in, nights,
-    breakfast, total_price, status ...
+    breakfast, total_price, status, room_number ...
     """
     bookings = load_bookings()
     code = create_confirmation_code()
@@ -118,3 +118,45 @@ def count_confirmed_by_room_type(room_type):
         if b_type == room_type and status == "Confirmed":
             count += 1
     return count
+
+
+def get_unavailable_room_numbers(check_in_str, check_out_str):
+    """
+    I check all bookings to find which room numbers are occupied
+    during the requested dates.
+    I return a set of room_number strings.
+    """
+    unavailable = set()
+    bookings = load_bookings()
+
+    try:
+        req_in = datetime.strptime(check_in_str, "%Y-%m-%d").date()
+        req_out = datetime.strptime(check_out_str, "%Y-%m-%d").date()
+    except ValueError:
+        return unavailable
+
+    for b in bookings:
+        # 1. Ignore cancelled bookings
+        if b.get("status") == "Cancelled":
+            continue
+
+        # 2. Check if booking has a room number
+        r_num = b.get("room_number")
+        if not r_num:
+            continue
+
+        # 3. Check date overlap
+        # Parse booking dates
+        try:
+            b_in = datetime.strptime(b.get("check_in", ""), "%Y-%m-%d").date()
+            b_out = datetime.strptime(b.get("check_out", ""),
+                                      "%Y-%m-%d").date()
+        except ValueError:
+            continue
+
+        # Overlap Logic: (StartA < EndB) and (EndA > StartB)
+        # This assumes checkout date is the day you leave (room becomes free).
+        if req_in < b_out and req_out > b_in:
+            unavailable.add(str(r_num))
+
+    return unavailable

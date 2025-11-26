@@ -8,7 +8,7 @@ import json
 import os
 import sys
 
-from booking_storage import count_confirmed_by_room_type
+from booking_storage import count_confirmed_by_room_type, get_unavailable_room_numbers
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOMS_DB_FILE = os.path.join(BASE_DIR, "rooms_db.json")
@@ -39,48 +39,9 @@ def _load_rooms_db():
     return rooms
 
 
-def _build_room_types(all_rooms):
-    """
-    From the full list of physical rooms I build a smaller list that
-    only contains one record per room type.
-    """
-    result = []
-    seen_codes = []
-
-    for room in all_rooms:
-        code = str(room.get("code", ""))
-
-        if not code:
-            continue
-
-        if code in seen_codes:
-            continue
-
-        short_type = str(room.get("short_type", ""))
-        room_type = {
-            "code": code,
-            "name": room.get("name", ""),
-            "short_type": short_type,
-            "price": float(room.get("price", 0.0)),
-            "floor": room.get("floor", ""),
-            "pet_friendly": bool(room.get("pet_friendly", False)),
-            "smoking": bool(room.get("smoking", False)),
-            "breakfast_available": bool(room.get("breakfast_available", False)),
-            "shuttle_available": bool(room.get("shuttle_available", False)),
-        }
-
-        result.append(room_type)
-        seen_codes.append(code)
-
-    return result
-
-
 def _build_capacity(all_rooms):
     """
     I count how many physical rooms we have for each short_type.
-
-    This information is used together with the bookings JSON file to
-    make sure a room type is not overbooked.
     """
     capacity = {}
 
@@ -99,10 +60,9 @@ def _build_capacity(all_rooms):
 
 
 # I load the JSON once when the module is imported.
+# This list contains ALL physical rooms (e.g. 101, 102, 501, etc.)
 ROOMS = _load_rooms_db()
-# ROOMS keeps one example per room type so the UI still shows one row
-# per type in the search results.
-
+print(len(ROOMS))
 # ROOM_CAPACITY tells me how many physical rooms each type has.
 ROOM_CAPACITY = _build_capacity(ROOMS)
 
@@ -120,6 +80,7 @@ if not ROOMS:
             "smoking": False,
             "breakfast_available": True,
             "shuttle_available": False,
+            "room_number": "101"
         },
         {
             "code": "SEAVIEW_TWIN",
@@ -131,6 +92,7 @@ if not ROOMS:
             "smoking": False,
             "breakfast_available": False,
             "shuttle_available": False,
+            "room_number": "201"
         },
         {
             "code": "CLASSIC_DOUBLE",
@@ -142,6 +104,7 @@ if not ROOMS:
             "smoking": False,
             "breakfast_available": False,
             "shuttle_available": False,
+            "room_number": "102"
         },
         {
             "code": "CORAL_SUITE",
@@ -153,6 +116,7 @@ if not ROOMS:
             "smoking": False,
             "breakfast_available": True,
             "shuttle_available": True,
+            "room_number": "501"
         },
     ]
     ROOM_CAPACITY = {
@@ -164,28 +128,25 @@ if not ROOMS:
 
 def filter_rooms(filters_dict, stay_info=None):
     """
-    I apply a simple set of filters to the ROOMS list.
+    I apply filters to the ROOMS list.
 
-    filters_dict keys:
-    - Room: list of short_type values like ["Twin", "Suite"]
-    - Floor: "Low" or "High" or ""
-    - Pet: bool
-    - Smoke: bool
-    - Shuttle: bool
-    - Breakfast: bool
-    - MinPrice: string or ""
-    - MaxPrice: string or ""
-
-    stay_info is a dict that may contain:
-    - check_in
-    - check_out
-    - nights
-
-    For now I do not use stay_info here, because member C owns F3.
-    I only use JSON and the ROOM_CAPACITY data to avoid overbooking
-    a room type.
+    Updated Logic:
+    1. I get the list of occupied room numbers from bookings_storage for the requested dates.
+    2. I iterate through ALL physical rooms.
+    3. I skip rooms that are occupied.
+    4. I apply user preferences (View, Pet, etc.).
+    5. Finally, I group the available rooms by 'short_type' so the UI
+       doesn't show 5 identical rows for 'Twin Room'.
+       I return one representative physical room for each available type.
     """
-    results = []
+
+    # 1. Get occupied rooms if dates are provided
+    blocked_rooms = set()
+    if stay_info and "check_in" in stay_info and "check_out" in stay_info:
+        blocked_rooms = get_unavailable_room_numbers(
+            stay_info["check_in"],
+            stay_info["check_out"]
+        )
 
     # I try to convert the price range into numbers.
     min_price = None
@@ -202,7 +163,16 @@ def filter_rooms(filters_dict, stay_info=None):
         except ValueError:
             max_price = None
 
+    # We will store available rooms keyed by their type to deduplicate them for the UI
+    available_types_map = {}
+
     for room in ROOMS:
+        # --- Availability Check ---
+        # If this specific physical room is booked, skip it.
+        if str(room.get("room_number", "")) in blocked_rooms:
+            continue
+
+        # --- Standard Filters ---
         match = True
 
         wanted_types = filters_dict.get("Room") or []
@@ -237,13 +207,13 @@ def filter_rooms(filters_dict, stay_info=None):
         if max_price is not None and price > max_price:
             match = False
 
-        # Simple capacity check based on existing JSON bookings.
-        current_count = count_confirmed_by_room_type(room["short_type"])
-        capacity = ROOM_CAPACITY.get(room["short_type"], 100)
-        if current_count >= capacity:
-            match = False
-
         if match:
-            results.append(room)
+            # If we found a matching, available room, check if we already have 
+            # a representative for this type. If not, add this one.
+            # This ensures the user sees "Twin Room" once, but when they click book,
+            # they are booking this specific 'room_number'.
+            r_type = room.get("short_type")
+            if r_type not in available_types_map:
+                available_types_map[r_type] = room
 
-    return results
+    return list(available_types_map.values())

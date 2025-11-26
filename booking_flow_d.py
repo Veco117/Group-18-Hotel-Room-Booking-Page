@@ -10,32 +10,36 @@ from booking_storage import add_booking
 
 try:
     from PIL import Image, ImageTk
+
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
 
-def create_round_rect_canvas(canvas, x1, y1, x2, y2, radius=20, tags=None, **kwargs):
+
+def create_round_rect_canvas(canvas, x1, y1, x2, y2, radius=20, tags=None,
+                             **kwargs):
     """
     Draw rounded rectangle using Canvas's create_polygon
     This is a native Canvas method, doesn't require Pillow
     """
     points = [
-        x1+radius, y1,
-        x2-radius, y1,
+        x1 + radius, y1,
+        x2 - radius, y1,
         x2, y1,
-        x2, y1+radius,
-        x2, y2-radius,
+        x2, y1 + radius,
+        x2, y2 - radius,
         x2, y2,
-        x2-radius, y2,
-        x1+radius, y2,
+        x2 - radius, y2,
+        x1 + radius, y2,
         x1, y2,
-        x1, y2-radius,
-        x1, y1+radius,
+        x1, y2 - radius,
+        x1, y1 + radius,
         x1, y1
     ]
     if tags:
         kwargs['tags'] = tags
     return canvas.create_polygon(points, smooth=True, **kwargs)
+
 
 BG_COLOR = "#F5F5F5"
 FONT_TITLE = ("Arial", 18, "bold")
@@ -54,12 +58,14 @@ class PaymentPage(tk.Frame):
     Collect payment information: card number (16 digits), CVV (3 digits), expiry date
     Validate all fields before processing
     """
+
     def __init__(self, parent, controller):
         super().__init__(parent, bg=BG_COLOR)
         self.controller = controller
 
         # Create canvas for background image
-        self.canvas = tk.Canvas(self, width=900, height=600, bg=BG_COLOR, highlightthickness=0)
+        self.canvas = tk.Canvas(self, width=900, height=600, bg=BG_COLOR,
+                                highlightthickness=0)
         self.canvas.pack(fill="both", expand=True)
 
         # Try to load background image
@@ -69,13 +75,14 @@ class PaymentPage(tk.Frame):
                 bg_img = Image.open(bg_path)
                 bg_img = bg_img.resize((900, 600), Image.Resampling.LANCZOS)
                 self.bg_photo = ImageTk.PhotoImage(bg_img)
-                self.canvas.create_image(0, 0, image=self.bg_photo, anchor="nw")
+                self.canvas.create_image(0, 0, image=self.bg_photo,
+                                         anchor="nw")
             except Exception as e:
                 print(f"Failed to load {bg_path}: {e}")
 
         # Center position
         center_x = 450
-        
+
         # Title: "Payment Information" (dark blue text, directly on background)
         self.canvas.create_text(
             center_x, 90,
@@ -106,7 +113,7 @@ class PaymentPage(tk.Frame):
         # Payment form elements directly on canvas (no white background, moved down)
         form_y_start = 280
         row_spacing = 50
-        
+
         # Card Number label
         self.canvas.create_text(
             center_x - 120, form_y_start,
@@ -115,8 +122,10 @@ class PaymentPage(tk.Frame):
             fill="#001540",
             anchor="e"
         )
-        self.entry_card = tk.Entry(self.canvas, font=FONT_LABEL, width=25, bg="white")
-        self.canvas.create_window(center_x - 90, form_y_start, window=self.entry_card, anchor="w")
+        self.entry_card = tk.Entry(self.canvas, font=FONT_LABEL, width=25,
+                                   bg="white")
+        self.canvas.create_window(center_x - 90, form_y_start,
+                                  window=self.entry_card, anchor="w")
 
         # CVV label
         self.canvas.create_text(
@@ -126,8 +135,10 @@ class PaymentPage(tk.Frame):
             fill="#001540",
             anchor="e"
         )
-        self.entry_cvv = tk.Entry(self.canvas, font=FONT_LABEL, width=25, show="*", bg="white")
-        self.canvas.create_window(center_x - 90, form_y_start + row_spacing, window=self.entry_cvv, anchor="w")
+        self.entry_cvv = tk.Entry(self.canvas, font=FONT_LABEL, width=25,
+                                  show="*", bg="white")
+        self.canvas.create_window(center_x - 90, form_y_start + row_spacing,
+                                  window=self.entry_cvv, anchor="w")
 
         # Expiry Date label
         self.canvas.create_text(
@@ -137,8 +148,11 @@ class PaymentPage(tk.Frame):
             fill="#001540",
             anchor="e"
         )
-        self.entry_expiry = tk.Entry(self.canvas, font=FONT_LABEL, width=25, bg="white")
-        self.canvas.create_window(center_x - 90, form_y_start + row_spacing * 2, window=self.entry_expiry, anchor="w")
+        self.entry_expiry = tk.Entry(self.canvas, font=FONT_LABEL, width=25,
+                                     bg="white")
+        self.canvas.create_window(center_x - 90,
+                                  form_y_start + row_spacing * 2,
+                                  window=self.entry_expiry, anchor="w")
 
         # Cardholder Name label
         self.canvas.create_text(
@@ -148,8 +162,11 @@ class PaymentPage(tk.Frame):
             fill="#001540",
             anchor="e"
         )
-        self.entry_cardholder = tk.Entry(self.canvas, font=FONT_LABEL, width=25, bg="white")
-        self.canvas.create_window(center_x - 90, form_y_start + row_spacing * 3, window=self.entry_cardholder, anchor="w")
+        self.entry_cardholder = tk.Entry(self.canvas, font=FONT_LABEL,
+                                         width=25, bg="white")
+        self.canvas.create_window(center_x - 90,
+                                  form_y_start + row_spacing * 3,
+                                  window=self.entry_cardholder, anchor="w")
 
         # Button dimensions (same as other pages)
         btn_width = 200
@@ -157,17 +174,17 @@ class PaymentPage(tk.Frame):
         btn_radius = 10
         btn_spacing = 30
         btn_y = 500  # Button Y position
-        
+
         # Calculate button positions
         total_width = btn_width * 2 + btn_spacing
         start_x = center_x - total_width // 2
-        
+
         # "Back to Summary" button (darker blue background, white text)
         btn_back_x1 = start_x
         btn_back_y1 = btn_y - btn_height // 2
         btn_back_x2 = btn_back_x1 + btn_width
         btn_back_y2 = btn_back_y1 + btn_height
-        
+
         create_round_rect_canvas(
             self.canvas,
             btn_back_x1, btn_back_y1, btn_back_x2, btn_back_y2,
@@ -184,16 +201,19 @@ class PaymentPage(tk.Frame):
             fill="white",
             tags="btn_back"
         )
-        self.canvas.tag_bind("btn_back", "<Button-1>", lambda e: controller.show_frame("SummaryPage"))
-        self.canvas.tag_bind("btn_back", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
-        self.canvas.tag_bind("btn_back", "<Leave>", lambda e: self.canvas.config(cursor=""))
+        self.canvas.tag_bind("btn_back", "<Button-1>",
+                             lambda e: controller.show_frame("SummaryPage"))
+        self.canvas.tag_bind("btn_back", "<Enter>",
+                             lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_back", "<Leave>",
+                             lambda e: self.canvas.config(cursor=""))
 
         # "Complete Payment" button (dark blue background, white text)
         btn_pay_x1 = start_x + btn_width + btn_spacing
         btn_pay_y1 = btn_y - btn_height // 2
         btn_pay_x2 = btn_pay_x1 + btn_width
         btn_pay_y2 = btn_pay_y1 + btn_height
-        
+
         create_round_rect_canvas(
             self.canvas,
             btn_pay_x1, btn_pay_y1, btn_pay_x2, btn_pay_y2,
@@ -211,8 +231,10 @@ class PaymentPage(tk.Frame):
             tags="btn_pay"
         )
         self.canvas.tag_bind("btn_pay", "<Button-1>", lambda e: self.on_pay())
-        self.canvas.tag_bind("btn_pay", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
-        self.canvas.tag_bind("btn_pay", "<Leave>", lambda e: self.canvas.config(cursor=""))
+        self.canvas.tag_bind("btn_pay", "<Enter>",
+                             lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_pay", "<Leave>",
+                             lambda e: self.canvas.config(cursor=""))
 
         # Refresh amount when page is shown
         self.bind("<<ShowPage>>", self.refresh_amount)
@@ -220,7 +242,8 @@ class PaymentPage(tk.Frame):
     def refresh_amount(self, event=None):
         """Update the total amount display"""
         total = getattr(self.controller, "total_price", 0.0)
-        self.canvas.itemconfig(self.amount_text_id, text=f"Total Amount: ${total:.2f}")
+        self.canvas.itemconfig(self.amount_text_id,
+                               text=f"Total Amount: ${total:.2f}")
 
     def validate_card_number(self, card):
         """Validate card number: must be 16 digits"""
@@ -319,12 +342,14 @@ class ConfirmationPage(tk.Frame):
     Save all booking data to JSON file
     Display confirmation message
     """
+
     def __init__(self, parent, controller):
         super().__init__(parent, bg=BG_COLOR)
         self.controller = controller
 
         # Create canvas for background image
-        self.canvas = tk.Canvas(self, width=900, height=600, bg=BG_COLOR, highlightthickness=0)
+        self.canvas = tk.Canvas(self, width=900, height=600, bg=BG_COLOR,
+                                highlightthickness=0)
         self.canvas.pack(fill="both", expand=True)
 
         # Try to load background image
@@ -334,7 +359,8 @@ class ConfirmationPage(tk.Frame):
                 bg_img = Image.open(bg_path)
                 bg_img = bg_img.resize((900, 600), Image.Resampling.LANCZOS)
                 self.bg_photo = ImageTk.PhotoImage(bg_img)
-                self.canvas.create_image(0, 0, image=self.bg_photo, anchor="nw")
+                self.canvas.create_image(0, 0, image=self.bg_photo,
+                                         anchor="nw")
             except Exception as e:
                 print(f"Failed to load {bg_path}: {e}")
 
@@ -359,8 +385,10 @@ class ConfirmationPage(tk.Frame):
         )
 
         # Confirmation code display (white background frame for readability)
-        self.code_frame = tk.Frame(self.canvas, bg="white", relief="ridge", bd=2)
-        self.canvas.create_window(center_x, 350, window=self.code_frame, anchor="center", width=500, height=120)
+        self.code_frame = tk.Frame(self.canvas, bg="white", relief="ridge",
+                                   bd=2)
+        self.canvas.create_window(center_x, 350, window=self.code_frame,
+                                  anchor="center", width=500, height=120)
 
         tk.Label(
             self.code_frame,
@@ -393,12 +421,12 @@ class ConfirmationPage(tk.Frame):
         btn_height = 45
         btn_radius = 10
         btn_y = 540  # Moved down 1cm (40 pixels)
-        
+
         btn_home_x1 = center_x - btn_width // 2
         btn_home_y1 = btn_y - btn_height // 2
         btn_home_x2 = btn_home_x1 + btn_width
         btn_home_y2 = btn_home_y1 + btn_height
-        
+
         create_round_rect_canvas(
             self.canvas,
             btn_home_x1, btn_home_y1, btn_home_x2, btn_home_y2,
@@ -415,9 +443,12 @@ class ConfirmationPage(tk.Frame):
             fill="white",
             tags="btn_home"
         )
-        self.canvas.tag_bind("btn_home", "<Button-1>", lambda e: self.return_home())
-        self.canvas.tag_bind("btn_home", "<Enter>", lambda e: self.canvas.config(cursor="hand2"))
-        self.canvas.tag_bind("btn_home", "<Leave>", lambda e: self.canvas.config(cursor=""))
+        self.canvas.tag_bind("btn_home", "<Button-1>",
+                             lambda e: self.return_home())
+        self.canvas.tag_bind("btn_home", "<Enter>",
+                             lambda e: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind("btn_home", "<Leave>",
+                             lambda e: self.canvas.config(cursor=""))
 
         # Generate confirmation when page is shown
         self.bind("<<ShowPage>>", self.generate_confirmation)
@@ -442,6 +473,8 @@ class ConfirmationPage(tk.Frame):
             "children": guest_info.get("children", 0),
             "room_type": room.get("short_type", "Unknown"),
             "room_name": room.get("name", "Unknown Room"),
+            # Ensure the specific room number is saved!
+            "room_number": room.get("room_number", "N/A"),
             "check_in": stay_info.get("check_in", ""),
             "check_out": stay_info.get("check_out", ""),
             "nights": stay_info.get("nights", 1),
