@@ -1,40 +1,58 @@
-#TVXK hotel booking system - Group 18
+# TVXK Hotel Booking System - Group 18
 
-Requirments:
-Python 3.10 or 3.11+
-TKinter
-Extra library that required: pillow, tkcalender.
-quick download command:
-python -m pip install pillow
-python -m pip install tkcalendar
+## Project Overview
+The **TVXK Hotel Booking System** is a desktop GUI application built with Python and Tkinter. It provides a comprehensive interface for users to browse hotel rooms, check availability, make reservations, and manage existing bookings. The system uses local JSON storage to persist booking and room data.
 
-How to run:
-Download the code into zip file by click top right corner "Code".
-download all the required library, python, tkinter.
-unzip the file.
-Run hotel_booking_app.py
+## Features
 
-Citation:
-Image Source:
-All image assets used in this project are sourced from Canva.
-Canva. (2025). Untitled infographic template [Image]. Canva.
-https://www.canva.com/
+### New Booking
+* **Date Selection:** Interactive calendar widget for selecting check-in and check-out dates.
+* **Room Filtering:** Filter rooms by type (Twin, Double, Suite), floor preference, pet-friendliness, smoking policies, and amenities (Breakfast, Shuttle).
+* **Search Results:** View available rooms with calculated total prices based on the length of stay.
+* **Guest Details:** Collects guest information with validation logic (e.g., adult/child count rules).
+* **Payment Simulation:** detailed payment form with validation for card details.
+* **Confirmation:** Generates a unique confirmation code and saves the booking.
 
-#Project features
-New booking
-Filter pages – choose room types, floor, pet-friendly, smoking, breakfast, shuttle, and price range.  
-Darta selection pages – pick check-in / check-out using a calendar widget (tkcalendar).  
-Search result page – show available rooms using filter_rooms().  
-Guest info page – collect first/last name, email, phone, and guest counts.  
-sumary page – display room cost, add-on fees, tax, and final total.  
-payment page – card number, expiry, CVV, and cardholder name validation.  
-Confirmation page – booking is saved into bookings.json and a confirmation codes is show.
+### Manage Booking
+* **Login:** Access bookings using a combination of Last Name and Confirmation Code.
+* **View Details:** Display full reservation details including payment breakdown.
+* **Modify Booking:** Update contact information (email, phone), guest counts, and add-on services.
+* **Cancel Booking:** Cancel an active reservation.
 
-Manage booking
-Manage booking page– users enter last name + booking number to look up a booking.  
-View booking page – shows booking details in a simple text view.  
-Modify booking page – update email, phone, guest count, breakfast, or shuttle.  
-Cancel booking page – cancel the existing booking and update JSON.
+## Prerequisites
 
-  
+* **Python:** Version 3.10 or higher.
 
+### Required Libraries
+This project relies on the following external libraries:
+* **Pillow (PIL):** For image processing and UI rendering.
+* **tkcalendar:** For the date picker widget.
+
+## Installation
+
+1.  **Download the Source Code**
+    Ensure all python files (`.py`) and the `icon/` folder are in the same directory.
+
+2.  **Install Dependencies**
+    Run the following command in your terminal:
+    ```bash
+    pip install pillow tkcalendar
+    ```
+
+3.  **Run the Application**
+    Start the application by running the main script:
+    ```bash
+    python hotel_booking_app.py
+    ```
+
+## Project Structure
+
+* `hotel_booking_app.py`: Main entry point containing the navigation and main frame setup.
+* `booking_flow_*.py`: Modules handling the booking process (Dates, Search, Guest Info, Payment).
+* `manage_booking_flow.py`: Modules for viewing and managing existing bookings.
+* `rooms_data.py` & `booking_storage.py`: Logic for data handling and JSON file operations.
+* `rooms_db.json`: Database of available rooms.
+* `bookings.json`: Storage for user reservations.
+
+## Credits
+* **Images:** All background images and icons are sourced from [Canva](https://www.canva.com/).
