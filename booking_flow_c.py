@@ -292,7 +292,7 @@ class GuestInfoPage(tk.Frame):
 
         tooltip = Tooltip(self.spin_children, "Children must be less than adults and no more than 6 people in total")
 
-        # Rule 1：children counts < adults count
+        # Rule 1: children counts < adults count
         if children >= adults:
             new_value = max(adults - 1, 0)
             self.spin_children.delete(0, "end")
@@ -300,7 +300,7 @@ class GuestInfoPage(tk.Frame):
             tooltip.show()
             return
 
-        # Rule 2：total people counts <= 6
+        # Rule 2: total people counts <= 6
         if adults + children > 6:
             # automatically changes children number
             new_value = max(6 - adults, 0)

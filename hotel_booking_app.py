@@ -90,7 +90,7 @@ def check_booking(last_name, code):
 
 def make_transparent(img):
     """
-    【Smart Background Removal】
+    Smart Background Removal
     If the image has a white background, try to make white transparent.
     Solves the 'black square' problem.
     """
@@ -111,7 +111,7 @@ def make_transparent(img):
 
 def invert_icon(img):
     """
-    【Icon Black-White Inversion】
+    Icon Black-White Inversion
     Invert the icon itself (negative color), keeping transparency unchanged
     """
     if not HAS_PIL:
@@ -134,7 +134,7 @@ def invert_icon(img):
 
 def create_colored_icon(img, color):
     """
-    【Icon Color Change】(kept for compatibility)
+    Icon Color Change (kept for compatibility)
     Fill icon content with specified color based on transparency
     (color='black' or 'white').
     """
