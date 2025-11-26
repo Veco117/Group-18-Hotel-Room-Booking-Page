@@ -6,10 +6,12 @@
 
 import json
 import os
+import sys
 
 from booking_storage import count_confirmed_by_room_type
 
-ROOMS_DB_FILE = "rooms_db.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOMS_DB_FILE = os.path.join(BASE_DIR, "rooms_db.json")
 
 
 def _load_rooms_db():
@@ -41,29 +43,22 @@ def _build_room_types(all_rooms):
     """
     From the full list of physical rooms I build a smaller list that
     only contains one record per room type.
-
-    The rest of the project already expects a ROOMS list with one
-    entry per type (Twin, Double, Suite, ...) so I keep that idea
-    and simply pick the first room of each type as the "representative".
     """
     result = []
-    seen_types = []
+    seen_codes = []
 
     for room in all_rooms:
+        code = str(room.get("code", ""))
+
+        if not code:
+            continue
+
+        if code in seen_codes:
+            continue
+
         short_type = str(room.get("short_type", ""))
-
-        if not short_type:
-            # If I cannot read the type I simply skip this record.
-            continue
-
-        if short_type in seen_types:
-            # I already have a representative for this type.
-            continue
-
-        # I copy the fields I care about into a new dict.
-        # This keeps the data shape very close to the original ROOMS list.
         room_type = {
-            "code": room.get("code", ""),
+            "code": code,
             "name": room.get("name", ""),
             "short_type": short_type,
             "price": float(room.get("price", 0.0)),
@@ -75,7 +70,7 @@ def _build_room_types(all_rooms):
         }
 
         result.append(room_type)
-        seen_types.append(short_type)
+        seen_codes.append(code)
 
     return result
 
@@ -104,14 +99,12 @@ def _build_capacity(all_rooms):
 
 
 # I load the JSON once when the module is imported.
-_ALL_ROOMS = _load_rooms_db()
-
+ROOMS = _load_rooms_db()
 # ROOMS keeps one example per room type so the UI still shows one row
 # per type in the search results.
-ROOMS = _build_room_types(_ALL_ROOMS)
 
 # ROOM_CAPACITY tells me how many physical rooms each type has.
-ROOM_CAPACITY = _build_capacity(_ALL_ROOMS)
+ROOM_CAPACITY = _build_capacity(ROOMS)
 
 # As a safety net I keep the old hard-coded data in case the JSON file
 # is missing when somebody runs the project.

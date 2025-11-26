@@ -7,7 +7,8 @@ import os
 import uuid
 from datetime import date
 
-DB_FILE = "bookings.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_FILE = os.path.join(BASE_DIR, "bookings.json")
 
 
 def load_bookings():

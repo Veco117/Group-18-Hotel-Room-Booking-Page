@@ -1383,11 +1383,5 @@ class TVXKHotelApp(tk.Tk):
 
 
 if __name__ == "__main__":
-    if os.environ.get('DISPLAY', '') == '' and os.name != 'nt':
-        print("Run locally.")
-    else:
-        app = TVXKHotelApp()
-        app.mainloop()
-    import python_ta
-
-    python_ta.check_all(config={'max_line_length': 80, "disable": ["E9999"]})
+    app = TVXKHotelApp()
+    app.mainloop()

@@ -12,7 +12,7 @@
     "check_out": "2025-11-26",
     "nights": 1,
     "breakfast": false,
-    "shuttle": false,
+    "shuttle": true,
     "total_price": 286.0,
     "payment_last4": "3456",
     "status": "Confirmed",
