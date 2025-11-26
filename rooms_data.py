@@ -42,6 +42,9 @@ def _load_rooms_db():
 def _build_capacity(all_rooms):
     """
     I count how many physical rooms we have for each short_type.
+
+    This information is used together with the bookings JSON file to
+    make sure a room type is not overbooked.
     """
     capacity = {}
 
@@ -60,9 +63,9 @@ def _build_capacity(all_rooms):
 
 
 # I load the JSON once when the module is imported.
-# This list contains ALL physical rooms (e.g. 101, 102, 501, etc.)
 ROOMS = _load_rooms_db()
-print(len(ROOMS))
+# ROOMS now keeps ALL physical rooms (one row per physical room)
+
 # ROOM_CAPACITY tells me how many physical rooms each type has.
 ROOM_CAPACITY = _build_capacity(ROOMS)
 
@@ -128,19 +131,34 @@ if not ROOMS:
 
 def filter_rooms(filters_dict, stay_info=None):
     """
-    I apply filters to the ROOMS list.
+    I apply a simple set of filters to the ROOMS list.
+
+    filters_dict keys:
+    - Room: list of short_type values like ["Twin", "Suite"]
+    - Floor: "Low" or "High" or ""
+    - Pet: bool
+    - Smoke: bool
+    - Shuttle: bool
+    - Breakfast: bool
+    - MinPrice: string or ""
+    - MaxPrice: string or ""
+
+    stay_info is a dict that may contain:
+    - check_in
+    - check_out
+    - nights
 
     Updated Logic:
-    1. I get the list of occupied room numbers from bookings_storage for the requested dates.
-    2. I iterate through ALL physical rooms.
-    3. I skip rooms that are occupied.
-    4. I apply user preferences (View, Pet, etc.).
-    5. Finally, I group the available rooms by 'short_type' so the UI
-       doesn't show 5 identical rows for 'Twin Room'.
-       I return one representative physical room for each available type.
+    1. Get occupied room numbers.
+    2. Iterate through ALL physical rooms.
+    3. Skip occupied rooms.
+    4. Apply preferences.
+    5. Return all matching physical rooms (no aggregation/deduplication),
+       so users can see specific available room numbers (e.g., 101, 102).
     """
+    results = []
 
-    # 1. Get occupied rooms if dates are provided
+    # 1. Get blocked rooms if dates are known
     blocked_rooms = set()
     if stay_info and "check_in" in stay_info and "check_out" in stay_info:
         blocked_rooms = get_unavailable_room_numbers(
@@ -163,16 +181,12 @@ def filter_rooms(filters_dict, stay_info=None):
         except ValueError:
             max_price = None
 
-    # We will store available rooms keyed by their type to deduplicate them for the UI
-    available_types_map = {}
-
     for room in ROOMS:
         # --- Availability Check ---
         # If this specific physical room is booked, skip it.
         if str(room.get("room_number", "")) in blocked_rooms:
             continue
 
-        # --- Standard Filters ---
         match = True
 
         wanted_types = filters_dict.get("Room") or []
@@ -207,13 +221,14 @@ def filter_rooms(filters_dict, stay_info=None):
         if max_price is not None and price > max_price:
             match = False
 
-        if match:
-            # If we found a matching, available room, check if we already have 
-            # a representative for this type. If not, add this one.
-            # This ensures the user sees "Twin Room" once, but when they click book,
-            # they are booking this specific 'room_number'.
-            r_type = room.get("short_type")
-            if r_type not in available_types_map:
-                available_types_map[r_type] = room
+        # No need to check generic capacity here because we checked specific availability above.
 
-    return list(available_types_map.values())
+        if match:
+            # Make a copy to modify the name for display purposes
+            # showing the room number clearly to the user.
+            room_copy = room.copy()
+            room_number = room.get("room_number", "N/A")
+            room_copy["name"] = f"{room['name']} ({room_number})"
+            results.append(room_copy)
+
+    return results

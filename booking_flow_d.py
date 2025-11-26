@@ -206,7 +206,7 @@ class PaymentPage(tk.Frame):
         self.canvas.tag_bind("btn_back", "<Enter>",
                              lambda e: self.canvas.config(cursor="hand2"))
         self.canvas.tag_bind("btn_back", "<Leave>",
-                             lambda e: self.canvas.config(cursor=""))
+                             lambda e: self.canvas.config(cursor="hand2"))
 
         # "Complete Payment" button (dark blue background, white text)
         btn_pay_x1 = start_x + btn_width + btn_spacing
@@ -448,7 +448,7 @@ class ConfirmationPage(tk.Frame):
         self.canvas.tag_bind("btn_home", "<Enter>",
                              lambda e: self.canvas.config(cursor="hand2"))
         self.canvas.tag_bind("btn_home", "<Leave>",
-                             lambda e: self.canvas.config(cursor=""))
+                             lambda e: self.canvas.config(cursor="hand2"))
 
         # Generate confirmation when page is shown
         self.bind("<<ShowPage>>", self.generate_confirmation)
@@ -473,8 +473,10 @@ class ConfirmationPage(tk.Frame):
             "children": guest_info.get("children", 0),
             "room_type": room.get("short_type", "Unknown"),
             "room_name": room.get("name", "Unknown Room"),
+
             # Ensure the specific room number is saved!
             "room_number": room.get("room_number", "N/A"),
+
             "check_in": stay_info.get("check_in", ""),
             "check_out": stay_info.get("check_out", ""),
             "nights": stay_info.get("nights", 1),
