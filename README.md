@@ -24,7 +24,7 @@ https://www.canva.com/
 New booking
 Filter pages – choose room types, floor, pet-friendly, smoking, breakfast, shuttle, and price range.  
 Darta selection pages – pick check-in / check-out using a calendar widget (tkcalendar).  
-Search result page – show available room types using filter_rooms().  
+Search result page – show available rooms using filter_rooms().  
 Guest info page – collect first/last name, email, phone, and guest counts.  
 sumary page – display room cost, add-on fees, tax, and final total.  
 payment page – card number, expiry, CVV, and cardholder name validation.  
