@@ -2,7 +2,7 @@
 # I keep information about the different room types here and provide
 # a simple filter_rooms function that I can call from the filter page.
 # In this version I read the room information from a JSON file so that
-# we can store many physical rooms without hard-coding everything.
+# we can store many physical rooms without hard coding everything.
 
 import json
 import os
